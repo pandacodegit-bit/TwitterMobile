@@ -1,5 +1,6 @@
 import { Post, PostsResponse } from '../types/Post';
 import { SAMPLE_POSTS } from '../data/samplePosts';
+import { SAMPLE_DISCOVER_POSTS } from '../data/sampleDiscoverPosts';
 
 // Configuration flag to switch between mock and real API
 // Use mock data in debug/development, real API in production
@@ -35,6 +36,20 @@ class PostRepository {
     }
     
     return this.fetchDiscoverFromAPI(limit, cursor);
+  }
+
+  /**
+   * Fetch posts from following users
+   * @param limit - Number of posts to fetch
+   * @param cursor - Pagination cursor (optional)
+   * @returns Promise with posts and pagination info
+   */
+  async fetchFollowingPosts(limit: number = 10, cursor?: string): Promise<PostsResponse> {
+    if (USE_MOCK_DATA) {
+      return this.fetchMockFollowingPosts(limit, cursor);
+    }
+    
+    return this.fetchFollowingFromAPI(limit, cursor);
   }
 
   /**
@@ -131,17 +146,34 @@ class PostRepository {
     // Simulate network delay
     await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
     
-    // For discover, we can shuffle or filter the sample posts differently
-    const shuffledPosts = [...SAMPLE_POSTS].sort(() => Math.random() - 0.5);
-    
+    // Use dedicated discover posts with mixed content
     const startIndex = cursor ? parseInt(cursor, 10) : 0;
     const endIndex = startIndex + limit;
-    const posts = shuffledPosts.slice(startIndex, endIndex);
+    const posts = SAMPLE_DISCOVER_POSTS.slice(startIndex, endIndex);
     
     return {
       posts,
-      hasMore: endIndex < shuffledPosts.length,
-      nextCursor: endIndex < shuffledPosts.length ? endIndex.toString() : undefined,
+      hasMore: endIndex < SAMPLE_DISCOVER_POSTS.length,
+      nextCursor: endIndex < SAMPLE_DISCOVER_POSTS.length ? endIndex.toString() : undefined,
+    };
+  }
+
+  private async fetchMockFollowingPosts(limit: number, cursor?: string): Promise<PostsResponse> {
+    // Simulate network delay
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
+    
+    // For following, show only certain posts (simulate following feed)
+    // In a real app, this would filter based on who the user follows
+    const followingPosts = SAMPLE_POSTS.filter((_, index) => index % 2 === 0); // Even indices only
+    
+    const startIndex = cursor ? parseInt(cursor, 10) : 0;
+    const endIndex = startIndex + limit;
+    const posts = followingPosts.slice(startIndex, endIndex);
+    
+    return {
+      posts,
+      hasMore: endIndex < followingPosts.length,
+      nextCursor: endIndex < followingPosts.length ? endIndex.toString() : undefined,
     };
   }
 
@@ -219,6 +251,33 @@ class PostRepository {
       return data;
     } catch (error) {
       console.error('Error fetching discover posts from API:', error);
+      throw error;
+    }
+  }
+
+  private async fetchFollowingFromAPI(limit: number, cursor?: string): Promise<PostsResponse> {
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        ...(cursor && { cursor }),
+      });
+
+      const response = await fetch(`${API_BASE_URL}/following?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authentication headers here
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch following posts');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching following posts from API:', error);
       throw error;
     }
   }

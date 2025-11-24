@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Video from 'react-native-video';
 import UserSection from './UserSection';
 import ActionButtons from './ActionButtons';
-import PlayIcon from './icons/PlayIcon';
+import { useVideo } from '../context/VideoContext';
 
 interface VideoPostCardProps {
   id: string;
@@ -17,6 +19,7 @@ interface VideoPostCardProps {
   reposts?: number;
   likes?: number;
   analytics?: number;
+  isVisible?: boolean;
 }
 
 const VideoPostCard = React.memo(({
@@ -27,51 +30,107 @@ const VideoPostCard = React.memo(({
   timestamp,
   title,
   videoUrl,
-  thumbnailUrl,
   comments,
   reposts,
   likes,
   analytics,
+  isVisible = false,
 }: VideoPostCardProps) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<any>(null);
+  const navigation = useNavigation();
+  const { updateVideoTime } = useVideo();
+  const [currentTime, setCurrentTime] = useState(0);
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    // Video playback logic will be added here
-    console.log('Play/Pause video:', videoUrl);
+  const onLoad = () => {
+    console.log(`Video ${id} loaded successfully, isVisible: ${isVisible}`);
+  };
+
+  const onError = (error: any) => {
+    console.error(`Video ${id} error:`, error);
+  };
+
+  const onBuffer = ({ isBuffering }: any) => {
+    console.log(`Video ${id} buffering: ${isBuffering}`);
+  };
+
+  const onProgress = (data: any) => {
+    setCurrentTime(data.currentTime);
+    updateVideoTime(id, data.currentTime);
+  };
+
+  const handleVideoPress = () => {
+    console.log('Video pressed, navigating to Watch screen');
+    try {
+      (navigation as any).navigate('Watch', {
+        videoPost: {
+          id,
+          type: 'video',
+          profileImage,
+          userName,
+          userId,
+          timestamp,
+          title,
+          videoUrl,
+          comments,
+          reposts,
+          likes,
+          analytics,
+          currentTime,
+        },
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <UserSection
-        profileImage={profileImage}
-        userName={userName}
-        userId={userId}
-        timestamp={timestamp}
-      />
+      <View style={styles.header}>
+        <UserSection
+          profileImage={profileImage}
+          userName={userName}
+          userId={userId}
+          timestamp={timestamp}
+        />
+      </View>
       
       {title && <Text style={styles.title}>{title}</Text>}
       
-      <TouchableOpacity style={styles.videoContainer} onPress={handlePlayPause}>
-        {thumbnailUrl && (
-          <Image
-            source={{ uri: thumbnailUrl }}
-            style={styles.thumbnail}
-            resizeMode="cover"
-          />
-        )}
-        <View style={styles.playButton}>
-          <PlayIcon color="#000" size={32} />
-        </View>
-      </TouchableOpacity>
+      <View style={styles.videoContainer}>
+        <Video
+          ref={videoRef}
+          source={{ uri: videoUrl }}
+          style={styles.video}
+          resizeMode="cover"
+          repeat={true}
+          paused={!isVisible}
+          muted={true}
+          playInBackground={false}
+          playWhenInactive={false}
+          controls={false}
+          ignoreSilentSwitch="ignore"
+          onLoad={onLoad}
+          onError={onError}
+          onBuffer={onBuffer}
+          onProgress={onProgress}
+          progressUpdateInterval={250}
+        />
+        <TouchableOpacity 
+          activeOpacity={1.0}
+          onPress={handleVideoPress}
+          style={styles.videoOverlay}
+        />
+      </View>
       
-      <ActionButtons
-        postId={id}
-        comments={comments}
-        reposts={reposts}
-        likes={likes}
-        analytics={analytics}
-      />
+      <View style={styles.actions}>
+        <ActionButtons
+          postId={id}
+          comments={comments}
+          reposts={reposts}
+          likes={likes}
+          analytics={analytics}
+        />
+      </View>
     </View>
   );
 });
@@ -79,38 +138,44 @@ const VideoPostCard = React.memo(({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EFF3F4',
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   title: {
     fontSize: 15,
     lineHeight: 20,
     color: '#0F1419',
-    marginBottom: 12,
+    fontWeight: '400',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   videoContainer: {
     width: '100%',
-    height: 300,
-    borderRadius: 16,
+    aspectRatio: 4 / 3,
     backgroundColor: '#000',
-    marginBottom: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    position: 'relative',
   },
-  thumbnail: {
+  video: {
     width: '100%',
     height: '100%',
-    position: 'absolute',
   },
-  playButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+  },
+  actions: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
 });
 

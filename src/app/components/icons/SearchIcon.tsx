@@ -4,15 +4,29 @@ import Svg, { Path } from 'react-native-svg';
 interface IconProps {
   color: string;
   size: number;
+  filled?: boolean;
 }
 
-const SearchIcon = ({ color, size }: IconProps) => (
-  <Svg width={size} height={size} viewBox="0 0 256 256" fill="none">
-    <Path
-      d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"
-      fill={color}
-    />
-  </Svg>
-);
+const SearchIcon = ({ color, size, filled = false }: IconProps) => {
+  if (filled) {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 256 256" fill="none">
+        <Path
+          d="M168,112a56,56,0,1,1-56-56A56,56,0,0,1,168,112Zm61.66,117.66a8,8,0,0,1-11.32,0l-50.06-50.07a88,88,0,1,1,11.32-11.31l50.06,50.06A8,8,0,0,1,229.66,229.66Z"
+          fill={color}
+        />
+      </Svg>
+    );
+  }
+
+  return (
+    <Svg width={size} height={size} viewBox="0 0 256 256" fill="none">
+      <Path
+        d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"
+        fill={color}
+      />
+    </Svg>
+  );
+};
 
 export default SearchIcon;

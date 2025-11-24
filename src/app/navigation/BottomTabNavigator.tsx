@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,19 +8,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../screens/HomeScreen';
 import DiscoverScreen from '../screens/DiscoverScreen';
 import WatchScreen from '../screens/WatchScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import CreateScreen from '../screens/CreateScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
+import MessagesScreen from '../screens/MessagesScreen';
 import { Colors } from '../style/colors';
 
 // Import icon components
 import HomeIcon from '../components/icons/HomeIcon';
 import SearchIcon from '../components/icons/SearchIcon';
 import PlayIcon from '../components/icons/PlayIcon';
-import PlusIcon from '../components/icons/PlusIcon';
+import BellIcon from '../components/icons/BellIcon';
 import ProfileIcon from '../components/icons/ProfileIcon';
 import MessageIcon from '../components/icons/MessageIcon';
+import GearIcon from '../components/icons/GearIcon';
 
 const Tab = createBottomTabNavigator();
+
+// Shared animated value for header translation
+const headerTranslateY = new Animated.Value(0);
 
 // Custom Header Component
 const CustomHeader = ({ title }: { title: string }) => {
@@ -28,52 +32,66 @@ const CustomHeader = ({ title }: { title: string }) => {
   const insets = useSafeAreaInsets();
   
   return (
-    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+    <Animated.View 
+      style={[
+        styles.header, 
+        { 
+          paddingTop: insets.top + 12,
+          transform: [{ translateY: headerTranslateY }],
+        }
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Profile' as never)}
+        style={styles.headerButton}
+      >
+        <ProfileIcon color="#000" size={24} />
+      </TouchableOpacity>
       <Text style={styles.headerTitle}>{title}</Text>
       <TouchableOpacity
-        onPress={() => navigation.navigate('Messages' as never)}
-        style={styles.messageButton}
+        onPress={() => console.log('Settings')}
+        style={styles.headerButton}
       >
-        <MessageIcon color="#000" size={24} />
+        <GearIcon color="#000" size={24} />
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 };
 
-const getTabBarIcon = ({ color, size, routeName }: {
+export { headerTranslateY, CustomHeader };
+
+const getTabBarIcon = ({ color, size, routeName, focused }: {
   color: string;
   size: number;
   routeName: string;
+  focused: boolean;
 }) => {
   switch (routeName) {
     case 'Home':
-      return <HomeIcon color={color} size={size} />;
+      return <HomeIcon color={color} size={size} filled={focused} />;
     case 'Discover':
-      return <SearchIcon color={color} size={size} />;
-    case 'Create':
-      return <PlusIcon color={color} size={size} />;
+      return <SearchIcon color={color} size={size} filled={focused} />;
     case 'Watch':
-      return <PlayIcon color={color} size={size} />;
-    case 'Profile':
-      return <ProfileIcon color={color} size={size} />;
+      return <PlayIcon color={color} size={size} filled={focused} />;
+    case 'Notifications':
+      return <BellIcon color={color} size={size} filled={focused} />;
+    case 'Messages':
+      return <MessageIcon color={color} size={size} filled={focused} />;
     default:
-      return <HomeIcon color={color} size={size} />;
+      return <HomeIcon color={color} size={size} filled={focused} />;
   }
 };
 
 const BottomTabNavigator = () => {
-  const renderHeader = ({ route }: any) => <CustomHeader title={route.name} />;
-  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => 
-          getTabBarIcon({ color, size, routeName: route.name }),
+        tabBarIcon: ({ color, size, focused }) => 
+          getTabBarIcon({ color, size, routeName: route.name, focused }),
         tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.tabInactive,
-        headerShown: true,
+        tabBarInactiveTintColor: Colors.primary,
+        headerShown: false,
         tabBarShowLabel: false,
-        header: renderHeader,
         tabBarStyle: {
           backgroundColor: '#fff',
           borderTopWidth: 1,
@@ -83,6 +101,16 @@ const BottomTabNavigator = () => {
           paddingTop: 8,
         },
       })}
+      screenListeners={{
+        state: () => {
+          // Reset header position when navigating between tabs
+          Animated.timing(headerTranslateY, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        },
+      }}
     >
       <Tab.Screen 
         name="Home" 
@@ -93,16 +121,16 @@ const BottomTabNavigator = () => {
         component={DiscoverScreen}
       />
       <Tab.Screen 
-        name="Create" 
-        component={CreateScreen}
-      />
-      <Tab.Screen 
         name="Watch" 
         component={WatchScreen}
       />
       <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
+        name="Notifications" 
+        component={NotificationsScreen}
+      />
+      <Tab.Screen 
+        name="Messages" 
+        component={MessagesScreen}
       />
     </Tab.Navigator>
   );
@@ -110,23 +138,31 @@ const BottomTabNavigator = () => {
 
 const styles = StyleSheet.create({
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 0,
-    elevation: 0,
-    shadowOpacity: 0,
+    zIndex: 1000,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#000',
+    flex: 1,
+    textAlign: 'center',
   },
-  messageButton: {
+  headerButton: {
     padding: 8,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
