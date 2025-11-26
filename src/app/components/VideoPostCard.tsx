@@ -1,8 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Video from 'react-native-video';
-import UserSection from './UserSection';
 import ActionButtons from './ActionButtons';
 import { useVideo } from '../context/VideoContext';
 
@@ -13,6 +12,7 @@ interface VideoPostCardProps {
   userId: string;
   timestamp?: string;
   title?: string;
+  text?: string;
   videoUrl: string;
   thumbnailUrl?: string;
   comments?: number;
@@ -29,6 +29,7 @@ const VideoPostCard = React.memo(({
   userId,
   timestamp,
   title,
+  text,
   videoUrl,
   comments,
   reposts,
@@ -59,9 +60,9 @@ const VideoPostCard = React.memo(({
   };
 
   const handleVideoPress = () => {
-    console.log('Video pressed, navigating to Watch screen');
+    console.log('Video pressed, navigating to VideoPage');
     try {
-      (navigation as any).navigate('Watch', {
+      (navigation as any).navigate('VideoPage', {
         videoPost: {
           id,
           type: 'video',
@@ -70,6 +71,7 @@ const VideoPostCard = React.memo(({
           userId,
           timestamp,
           title,
+          text,
           videoUrl,
           comments,
           reposts,
@@ -85,51 +87,76 @@ const VideoPostCard = React.memo(({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <UserSection
-          profileImage={profileImage}
-          userName={userName}
-          userId={userId}
-          timestamp={timestamp}
-        />
-      </View>
-      
-      {title && <Text style={styles.title}>{title}</Text>}
-      
-      <View style={styles.videoContainer}>
-        <Video
-          ref={videoRef}
-          source={{ uri: videoUrl }}
-          style={styles.video}
-          resizeMode="cover"
-          repeat={true}
-          paused={!isVisible}
-          muted={true}
-          playInBackground={false}
-          playWhenInactive={false}
-          controls={false}
-          ignoreSilentSwitch="ignore"
-          onLoad={onLoad}
-          onError={onError}
-          onBuffer={onBuffer}
-          onProgress={onProgress}
-          progressUpdateInterval={250}
-        />
-        <TouchableOpacity 
-          activeOpacity={1.0}
-          onPress={handleVideoPress}
-          style={styles.videoOverlay}
-        />
-      </View>
-      
-      <View style={styles.actions}>
-        <ActionButtons
-          postId={id}
-          comments={comments}
-          reposts={reposts}
-          likes={likes}
-          analytics={analytics}
-        />
+      <View style={styles.contentRow}>
+        <Image source={{ uri: profileImage }} style={styles.profileImage} />
+        
+        <View style={styles.contentColumn}>
+
+            <View style={styles.headerRow}>
+            <Text style={styles.userName}>{userName}</Text>
+            <Text style={styles.userId}> @{userId}</Text>
+            {timestamp && (
+              <>
+                <Text style={styles.dot}>· </Text>
+                <Text style={styles.timestamp}>{timestamp}</Text>
+              </>
+            )}
+          </View>
+
+          {title && <Text 
+          numberOfLines={1}
+          style={styles.title}
+          >{title}</Text>}
+          
+          {/* <View style={styles.headerRow}>
+            <Text style={styles.userName}>{userName}</Text>
+            <Text style={styles.userId}>@{userId}</Text>
+            {timestamp && (
+              <>
+                <Text style={styles.dot}>·</Text>
+                <Text style={styles.timestamp}>{timestamp}</Text>
+              </>
+            )}
+          </View> */}
+          
+          {/* {text && <Text style={styles.description}>{text}</Text>} */}
+          
+          <View style={styles.videoContainer}>
+            <Video
+              ref={videoRef}
+              source={{ uri: videoUrl }}
+              style={styles.video}
+              resizeMode="cover"
+              repeat={true}
+              paused={!isVisible}
+              muted={true}
+              playInBackground={false}
+              playWhenInactive={false}
+              controls={false}
+              ignoreSilentSwitch="ignore"
+              onLoad={onLoad}
+              onError={onError}
+              onBuffer={onBuffer}
+              onProgress={onProgress}
+              progressUpdateInterval={250}
+            />
+            <TouchableOpacity 
+              activeOpacity={1.0}
+              onPress={handleVideoPress}
+              style={styles.videoOverlay}
+            />
+          </View>
+          
+          <View style={styles.actions}>
+            <ActionButtons
+              postId={id}
+              comments={comments}
+              reposts={reposts}
+              likes={likes}
+              analytics={analytics}
+            />
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -140,25 +167,73 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#EFF3F4',
-  },
-  header: {
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingTop: 16,
+  },
+  contentRow: {
+    flexDirection: 'row',
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    // borderRadius: 20,
+    backgroundColor: '#E1E8ED',
+    marginRight: 12,
+  },
+  contentColumn: {
+    flex: 1,
   },
   title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0F1419',
+    marginBottom: 4,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+    marginRight: 4,
+    
+  },
+  userId: {
+    fontSize: 16,
+    color: '#536471',
+    fontWeight: '400',
+    marginRight: 4,
+  },
+  dot: {
+    fontSize: 16,
+    color: '#536471',
+    marginHorizontal: 4,
+    fontWeight: '400',
+  },
+  timestamp: {
+    fontSize: 16,
+    color: '#536471',
+    fontWeight: '400',
+  },
+  description: {
     fontSize: 15,
     lineHeight: 20,
     color: '#0F1419',
     fontWeight: '400',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    marginBottom: 12,
   },
   videoContainer: {
     width: '100%',
-    aspectRatio: 4 / 3,
+    aspectRatio: 16 / 9,
     backgroundColor: '#000',
     position: 'relative',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 0,
   },
   video: {
     width: '100%',
@@ -173,9 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   actions: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
+    marginTop: 0,
   },
 });
 

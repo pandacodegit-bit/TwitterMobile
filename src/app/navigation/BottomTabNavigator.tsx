@@ -27,7 +27,7 @@ const Tab = createBottomTabNavigator();
 const headerTranslateY = new Animated.Value(0);
 
 // Custom Header Component
-const CustomHeader = ({ title }: { title: string }) => {
+const CustomHeader = ({ title, showGear = false }: { title: string; showGear?: boolean }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   
@@ -48,12 +48,21 @@ const CustomHeader = ({ title }: { title: string }) => {
         <ProfileIcon color="#000" size={24} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>{title}</Text>
-      <TouchableOpacity
-        onPress={() => console.log('Settings')}
-        style={styles.headerButton}
-      >
-        <GearIcon color="#000" size={24} />
-      </TouchableOpacity>
+      {showGear ? (
+        <TouchableOpacity
+          onPress={() => (navigation as any).navigate('Settings')}
+          style={styles.headerButton}
+        >
+          <GearIcon color="#000" size={24} />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.headerButton}
+          disabled
+        >
+          {/* Empty space to maintain layout balance */}
+        </TouchableOpacity>
+      )}
     </Animated.View>
   );
 };
@@ -94,11 +103,13 @@ const BottomTabNavigator = () => {
         tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: '#fff',
-          borderTopWidth: 1,
+          borderTopWidth: 2,
           borderTopColor: '#e1e8ed',
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
+          paddingEnd: 4,
+          paddingStart: 4
         },
       })}
       screenListeners={{

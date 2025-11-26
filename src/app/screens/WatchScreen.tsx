@@ -1,190 +1,218 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image } from 'react-native';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
-import Video from 'react-native-video';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Animated } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Post } from '../types/Post';
 import { postRepository } from '../repositories/PostRepository';
-import ChatIcon from '../components/icons/ChatIcon';
-import RepeatIcon from '../components/icons/RepeatIcon';
-import HeartIcon from '../components/icons/HeartIcon';
-import ChartIcon from '../components/icons/ChartIcon';
 import { useVideo } from '../context/VideoContext';
+import { headerTranslateY, CustomHeader } from '../navigation/BottomTabNavigator';
+import PlayIcon from '../components/icons/PlayIcon';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-interface WatchScreenParams {
-  videoPost?: Post & { currentTime?: number };
-  videoIndex?: number;
+interface Section {
+  id: string;
+  title: string;
+  data: Post[];
 }
 
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Section | Post>);
+
 const WatchScreen = () => {
-  const route = useRoute();
-  const params = route.params as WatchScreenParams | undefined;
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const { getVideoTime } = useVideo();
   
-  const [videos, setVideos] = useState<Post[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isScreenFocused, setIsScreenFocused] = useState(true);
-  const [seekTime, setSeekTime] = useState<number | null>(null);
-  const flatListRef = useRef<FlatList>(null);
-  const videoRefs = useRef<Map<string, any>>(new Map());
-
-  useFocusEffect(
-    useCallback(() => {
-      setIsScreenFocused(true);
-      return () => {
-        setIsScreenFocused(false);
-      };
-    }, [])
-  );
+  const [sections, setSections] = useState<Section[]>([]);
+  const [regularVideos, setRegularVideos] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
 
   const loadVideos = useCallback(async () => {
+    setLoading(true);
+    // Reset header position when loading
+    Animated.timing(headerTranslateY, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
     const response = await postRepository.fetchPosts(20);
     const videoOnly = response.posts.filter(post => post.type === 'video');
-    setVideos(videoOnly);
     
-    // If navigated from a specific video, find its index and seek time
-    if (params?.videoPost) {
-      const index = videoOnly.findIndex(v => v.id === params.videoPost?.id);
-      if (index !== -1) {
-        setCurrentIndex(index);
-        // Get the current playback time
-        const time = params.videoPost.currentTime || getVideoTime(params.videoPost.id);
-        setSeekTime(time);
-        
-        // Use a more reliable scroll method
-        setTimeout(() => {
-          if (flatListRef.current) {
-            try {
-              flatListRef.current.scrollToIndex({ index, animated: false });
-            } catch {
-              // Fallback to scrollToOffset if scrollToIndex fails
-              flatListRef.current.scrollToOffset({ offset: index * SCREEN_HEIGHT, animated: false });
-            }
-          }
-        }, 100);
-      }
-    }
-  }, [params?.videoPost, getVideoTime]);
-
-  const onScrollToIndexFailed = (info: any) => {
-    const wait = new Promise<void>(resolve => setTimeout(() => resolve(), 100));
-    wait.then(() => {
-      if (flatListRef.current) {
-        flatListRef.current.scrollToOffset({ offset: info.index * SCREEN_HEIGHT, animated: false });
-      }
-    });
-  };
+    // Reuse same videos for all sections and regular videos
+    const sectionsToShow = [
+      { id: 'trending', title: 'Trending', data: videoOnly },
+      { id: 'continue', title: 'Continue Watching', data: videoOnly },
+      { id: 'following', title: 'Following', data: videoOnly },
+      { id: 'history', title: 'History', data: videoOnly },
+      { id: 'playlist', title: 'Playlist', data: videoOnly },
+    ];
+    
+    setSections(sectionsToShow);
+    setRegularVideos(videoOnly);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     loadVideos();
   }, [loadVideos]);
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index || 0);
+  const handleVideoPress = (video: Post) => {
+    const currentTime = getVideoTime(video.id);
+    (navigation as any).navigate('VideoPage', {
+      videoPost: {
+        ...video,
+        currentTime,
+      },
+    });
+  };
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event: any) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
+
+        if (diff > 0 && currentScrollY > 50) {
+          // Scrolling down - hide header
+          Animated.timing(headerTranslateY, {
+            toValue: -100,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        } else if (diff < 0) {
+          // Scrolling up - show header
+          Animated.timing(headerTranslateY, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+
+        lastScrollY.current = currentScrollY;
+      },
     }
-  }).current;
+  );
 
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
-  }).current;
-
-  const renderVideoItem = ({ item, index }: { item: Post; index: number }) => {
-    const isActive = index === currentIndex && isScreenFocused;
-    const shouldSeek = isActive && seekTime !== null && item.id === params?.videoPost?.id;
-    
-    return (
-      <View style={[styles.videoContainer, { height: SCREEN_HEIGHT }]}>
-        <View style={styles.videoWrapper}>
-          <Video
-            ref={(ref) => {
-              if (ref) {
-                videoRefs.current.set(item.id, ref);
-              }
-            }}
-            source={{ uri: item.videoUrl || '' }}
-            style={styles.video}
-            resizeMode="contain"
-            repeat={true}
-            paused={!isActive}
-            muted={false}
-            playInBackground={false}
-            playWhenInactive={false}
-            controls={true}
-            ignoreSilentSwitch="ignore"
-            onLoad={() => {
-              if (shouldSeek) {
-                const videoRef = videoRefs.current.get(item.id);
-                if (videoRef && seekTime) {
-                  videoRef.seek(seekTime);
-                  setSeekTime(null); // Clear after seeking
-                }
-              }
-            }}
-          />
-        </View>
-        
-        <View style={styles.infoContainer}>
-          <View style={styles.userInfo}>
-            <Image 
-              source={{ uri: item.profileImage }} 
-              style={styles.profileImage} 
-            />
-            <View style={styles.textInfo}>
-              <Text style={styles.userName}>{item.userName}</Text>
-              <Text style={styles.userId}>@{item.userId} · {item.timestamp}</Text>
-            </View>
-          </View>
-          
-          {item.title && (
-            <Text style={styles.description}>{item.title}</Text>
-          )}
-          
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.actionButton}>
-              <ChatIcon color="#fff" size={20} />
-              <Text style={styles.actionText}>{item.comments}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <RepeatIcon color="#fff" size={20} />
-              <Text style={styles.actionText}>{item.reposts}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <HeartIcon color="#fff" size={20} />
-              <Text style={styles.actionText}>{item.likes}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <ChartIcon color="#fff" size={20} />
-              <Text style={styles.actionText}>{item.analytics}</Text>
-            </TouchableOpacity>
+  const renderHorizontalVideoItem = ({ item }: { item: Post }) => (
+    <TouchableOpacity 
+      style={styles.horizontalVideoItem} 
+      onPress={() => handleVideoPress(item)}
+      activeOpacity={0.9}
+    >
+      <View style={styles.horizontalVideoContainer}>
+        <Image
+          source={{ uri: item.thumbnailUrl || 'https://picsum.photos/800/450?random=' + item.id }}
+          style={styles.horizontalThumbnail}
+          resizeMode="cover"
+        />
+        <View style={styles.playIconOverlay}>
+          <View style={styles.playIcon}>
+            <PlayIcon color="#fff" size={24} filled={false} />
           </View>
         </View>
       </View>
-    );
+      <Text style={styles.horizontalVideoTitle} numberOfLines={2}>
+        {item.title}
+      </Text>
+      <Text style={styles.horizontalVideoMeta} numberOfLines={1}>
+        {item.userName} · {item.analytics} views
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderVerticalVideoItem = ({ item }: { item: Post }) => (
+    <TouchableOpacity 
+      style={styles.videoItem} 
+      onPress={() => handleVideoPress(item)}
+      activeOpacity={0.9}
+    >
+      <View style={styles.videoContainer}>
+        <Image
+          source={{ uri: item.thumbnailUrl || 'https://picsum.photos/800/450?random=' + item.id }}
+          style={styles.videoThumbnail}
+          resizeMode="contain"
+        />
+        <View style={styles.playIconOverlay}>
+          <View style={styles.playIcon}>
+            <PlayIcon color="#fff" size={32} filled={false} />
+          </View>
+        </View>
+      </View>
+      
+      <View style={styles.videoInfoRow}>
+        <Image 
+          source={{ uri: item.profileImage }} 
+          style={styles.profileImage} 
+        />
+        <View style={styles.videoInfo}>
+          {item.title && (
+            <Text style={styles.videoTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
+          )}
+          <View style={styles.metaRow}>
+            <Text style={styles.userName}>{item.userName}</Text>
+            <Text style={styles.dot}>·</Text>
+            <Text style={styles.analytics}>{item.analytics} views</Text>
+            {item.timestamp && (
+              <>
+                <Text style={styles.dot}>·</Text>
+                <Text style={styles.timestamp}>{item.timestamp}</Text>
+              </>
+            )}
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderSectionRow = ({ item }: { item: Section }) => (
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>{item.title}</Text>
+      <FlatList
+        data={item.data}
+        renderItem={renderHorizontalVideoItem}
+        keyExtractor={(video) => video.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontalList}
+      />
+    </View>
+  );
+
+  const renderMainItem = ({ item }: { item: Section | Post }) => {
+    if ('title' in item && 'data' in item) {
+      // It's a section
+      return renderSectionRow({ item: item as Section });
+    } else {
+      // It's a regular video
+      return renderVerticalVideoItem({ item: item as Post });
+    }
   };
 
-  const keyExtractor = (item: Post) => item.id;
+  const mainData = [...sections, ...regularVideos];
+  const keyExtractor = (item: Section | Post) => {
+    if ('data' in item) {
+      return (item as Section).id;
+    }
+    return (item as Post).id;
+  };
 
   return (
     <View style={styles.container}>
-      <FlatList
-        ref={flatListRef}
-        data={videos}
-        renderItem={renderVideoItem}
+      <CustomHeader title="Watch" />
+      <AnimatedFlatList
+        data={mainData}
+        renderItem={renderMainItem}
         keyExtractor={keyExtractor}
-        pagingEnabled
         showsVerticalScrollIndicator={false}
-        snapToInterval={SCREEN_HEIGHT}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        onScrollToIndexFailed={onScrollToIndexFailed}
-        removeClippedSubviews={true}
-        initialNumToRender={1}
-        maxToRenderPerBatch={2}
-        windowSize={3}
+        contentContainerStyle={[styles.listContent, { paddingTop: insets.top + 64 + 16 }]}
+        refreshing={loading}
+        onRefresh={loadVideos}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
     </View>
   );
@@ -193,71 +221,130 @@ const WatchScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
-  videoContainer: {
-    width: '100%',
-    backgroundColor: '#000',
-    justifyContent: 'flex-start',
+  listContent: {
+    paddingBottom: 16,
   },
-  videoWrapper: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    backgroundColor: '#000',
+  sectionContainer: {
+    marginBottom: 5,
   },
-  video: {
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0F1419',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  horizontalList: {
+    paddingHorizontal: 12,
+  },
+  horizontalVideoItem: {
+    width: 200,
+    marginHorizontal: 4,
+  },
+  horizontalVideoContainer: {
+    width: 200,
+    height: 112,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 8,
+    position: 'relative',
+  },
+  horizontalThumbnail: {
     width: '100%',
     height: '100%',
   },
-  infoContainer: {
-    padding: 16,
-    paddingTop: 20,
+  horizontalVideoTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F1419',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  horizontalVideoMeta: {
+    fontSize: 12,
+    color: '#536471',
+  },
+  videoItem: {
+    marginBottom: 10,
+    paddingBottom: 16,
+  },
+  videoContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#000',
+    position: 'relative',
+  },
+  videoThumbnail: {
+    width: '100%',
+    height: '100%',
     backgroundColor: '#000',
   },
-  userInfo: {
-    flexDirection: 'row',
+  playIconOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+  },
+  playIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoInfoRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   profileImage: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#E1E8ED',
     marginRight: 12,
   },
-  textInfo: {
+  videoInfo: {
     flex: 1,
   },
-  userName: {
+  videoTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  userId: {
-    fontSize: 13,
-    color: '#aaa',
-  },
-  description: {
-    fontSize: 15,
+    color: '#0F1419',
+    marginBottom: 6,
     lineHeight: 20,
-    color: '#fff',
-    marginBottom: 16,
   },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    maxWidth: 400,
-  },
-  actionButton: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    flexWrap: 'wrap',
   },
-  actionText: {
+  userName: {
     fontSize: 13,
-    color: '#aaa',
-    marginLeft: 4,
+    fontWeight: '400',
+    color: '#536471',
+    marginRight: 4,
+  },
+  analytics: {
+    fontSize: 13,
+    color: '#536471',
+    marginRight: 4,
+  },
+  dot: {
+    fontSize: 13,
+    color: '#536471',
+    marginHorizontal: 4,
+  },
+  timestamp: {
+    fontSize: 13,
+    color: '#536471',
   },
 });
 

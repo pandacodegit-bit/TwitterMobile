@@ -1,6 +1,7 @@
 import { Post, PostsResponse } from '../types/Post';
 import { SAMPLE_POSTS } from '../data/samplePosts';
 import { SAMPLE_DISCOVER_POSTS } from '../data/sampleDiscoverPosts';
+import { SAMPLE_FOLLOWING_POSTS } from '../data/sampleFollowingPosts';
 
 // Configuration flag to switch between mock and real API
 // Use mock data in debug/development, real API in production
@@ -124,6 +125,7 @@ class PostRepository {
     // Simulate network delay
     await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
     
+    // For You feed shows video posts
     const startIndex = cursor ? parseInt(cursor, 10) : 0;
     const endIndex = startIndex + limit;
     const posts = SAMPLE_POSTS.slice(startIndex, endIndex);
@@ -162,18 +164,17 @@ class PostRepository {
     // Simulate network delay
     await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
     
-    // For following, show only certain posts (simulate following feed)
-    // In a real app, this would filter based on who the user follows
-    const followingPosts = SAMPLE_POSTS.filter((_, index) => index % 2 === 0); // Even indices only
-    
+    // Following feed shows text posts
     const startIndex = cursor ? parseInt(cursor, 10) : 0;
     const endIndex = startIndex + limit;
-    const posts = followingPosts.slice(startIndex, endIndex);
+    const posts = SAMPLE_FOLLOWING_POSTS.slice(startIndex, endIndex);
+    
+    console.log('fetchMockFollowingPosts - Returning posts:', posts.map(p => ({ id: p.id, type: p.type })));
     
     return {
       posts,
-      hasMore: endIndex < followingPosts.length,
-      nextCursor: endIndex < followingPosts.length ? endIndex.toString() : undefined,
+      hasMore: endIndex < SAMPLE_FOLLOWING_POSTS.length,
+      nextCursor: endIndex < SAMPLE_FOLLOWING_POSTS.length ? endIndex.toString() : undefined,
     };
   }
 

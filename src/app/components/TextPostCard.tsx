@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import UserSection from './UserSection';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import ActionButtons from './ActionButtons';
 
 interface TextPostCardProps {
@@ -9,6 +8,7 @@ interface TextPostCardProps {
   userName: string;
   userId: string;
   timestamp?: string;
+  title?: string;
   text: string;
   comments?: number;
   reposts?: number;
@@ -22,6 +22,7 @@ const TextPostCard = React.memo(({
   userName,
   userId,
   timestamp,
+  title,
   text,
   comments,
   reposts,
@@ -30,22 +31,39 @@ const TextPostCard = React.memo(({
 }: TextPostCardProps) => {
   return (
     <View style={styles.container}>
-      <UserSection
-        profileImage={profileImage}
-        userName={userName}
-        userId={userId}
-        timestamp={timestamp}
-      />
-      
-      <Text style={styles.textBody}>{text}</Text>
-      
-      <ActionButtons
-        postId={id}
-        comments={comments}
-        reposts={reposts}
-        likes={likes}
-        analytics={analytics}
-      />
+      <View style={styles.contentRow}>
+        <Image source={{ uri: profileImage }} style={styles.profileImage} />
+        
+        <View style={styles.contentColumn}>
+          <View style={styles.headerRow}>
+            <Text style={styles.userName}>{userName}</Text>
+            <Text style={styles.userId}> @{userId}</Text>
+            {timestamp && (
+              <>
+                <Text style={styles.dot}>· </Text>
+                <Text style={styles.timestamp}>{timestamp}</Text>
+              </>
+            )}
+          </View>
+
+          {title && <Text 
+            numberOfLines={1}
+            style={styles.title}
+          >{title}</Text>}
+          
+          <Text style={styles.textBody}>{text}</Text>
+          
+          <View style={styles.actions}>
+            <ActionButtons
+              postId={id}
+              comments={comments}
+              reposts={reposts}
+              likes={likes}
+              analytics={analytics}
+            />
+          </View>
+        </View>
+      </View>
     </View>
   );
 });
@@ -53,15 +71,67 @@ const TextPostCard = React.memo(({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EFF3F4',
+  },
+  contentRow: {
+    flexDirection: 'row',
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    // borderRadius: 20,
+    backgroundColor: '#E1E8ED',
+    marginRight: 12,
+  },
+  contentColumn: {
+    flex: 1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+    marginRight: 4,
+  },
+  userId: {
+    fontSize: 16,
+    color: '#536471',
+    fontWeight: '400',
+    marginRight: 4,
+  },
+  dot: {
+    fontSize: 16,
+    color: '#536471',
+    marginHorizontal: 4,
+    fontWeight: '400',
+  },
+  timestamp: {
+    fontSize: 16,
+    color: '#536471',
+    fontWeight: '400',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0F1419',
+    marginBottom: 4,
   },
   textBody: {
     fontSize: 15,
     lineHeight: 20,
     color: '#0F1419',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  actions: {
+    marginTop: 4,
   },
 });
 

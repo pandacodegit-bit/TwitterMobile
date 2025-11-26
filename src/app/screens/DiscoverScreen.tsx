@@ -136,6 +136,7 @@ const DiscoverScreen = () => {
             userName={item.userName}
             userId={item.userId}
             timestamp={item.timestamp}
+            title={item.title}
             text={item.text || ''}
             comments={item.comments}
             reposts={item.reposts}
@@ -152,6 +153,7 @@ const DiscoverScreen = () => {
             userId={item.userId}
             timestamp={item.timestamp}
             title={item.title}
+            text={item.text}
             imageUrl={item.imageUrl || ''}
             comments={item.comments}
             reposts={item.reposts}
@@ -168,6 +170,7 @@ const DiscoverScreen = () => {
             userId={item.userId}
             timestamp={item.timestamp}
             title={item.title}
+            text={item.text}
             videoUrl={item.videoUrl || ''}
             thumbnailUrl={item.thumbnailUrl}
             comments={item.comments}
@@ -226,7 +229,7 @@ const DiscoverScreen = () => {
       />
       {(loading && initialLoading) && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#14171A" />
+          <ActivityIndicator size="large" color="#000000" />
         </View>
       )}
     </View>

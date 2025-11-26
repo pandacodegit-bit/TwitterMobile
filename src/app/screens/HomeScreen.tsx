@@ -8,25 +8,27 @@ import { postRepository } from '../repositories/PostRepository';
 import { Colors } from '../style/colors';
 import { headerTranslateY, CustomHeader } from '../navigation/BottomTabNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSettings } from '../context/SettingsContext';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Post>);
 
 const HomeScreen = () => {
     const insets = useSafeAreaInsets();
+    const { defaultTab } = useSettings();
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [nextCursor, setNextCursor] = useState<string | undefined>();
-    const [activeTab, setActiveTab] = useState<'forYou' | 'following'>('forYou');
+    const [activeTab, setActiveTab] = useState<'forYou' | 'following'>(defaultTab);
     const [switchingTab, setSwitchingTab] = useState(false);
     const [visibleVideoIds, setVisibleVideoIds] = useState<Set<string>>(new Set());
     const scrollY = useRef(new Animated.Value(0)).current;
     const lastScrollY = useRef(0);
     const isInitialMount = useRef(true);
 
-    const loadPosts = useCallback(async (isTabSwitch: boolean = false) => {
+    const loadPosts = useCallback(async (isTabSwitch: boolean = false, tab?: 'forYou' | 'following') => {
         try {
             if (isTabSwitch) {
                 setSwitchingTab(true);
@@ -39,9 +41,12 @@ const HomeScreen = () => {
             } else {
                 setLoading(true);
             }
-            const response = activeTab === 'forYou' 
+            const currentTab = tab || activeTab;
+            console.log('Loading posts for tab:', currentTab);
+            const response = currentTab === 'forYou' 
                 ? await postRepository.fetchPosts(10)
                 : await postRepository.fetchFollowingPosts(10);
+            console.log('Received posts:', response.posts.map(p => ({ id: p.id, type: p.type })));
             setPosts(response.posts);
             setHasMore(response.hasMore);
             setNextCursor(response.nextCursor);
@@ -64,6 +69,16 @@ const HomeScreen = () => {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Set first video as visible when posts load
+    useEffect(() => {
+        if (posts.length > 0 && !loading) {
+            const firstVideo = posts.find(p => p.type === 'video');
+            if (firstVideo) {
+                setVisibleVideoIds(new Set([firstVideo.id]));
+            }
+        }
+    }, [posts, loading]);
 
     const onRefresh = async () => {
         try {
@@ -152,6 +167,7 @@ const HomeScreen = () => {
                         userName={item.userName}
                         userId={item.userId}
                         timestamp={item.timestamp}
+                        title={item.title}
                         text={item.text || ''}
                         comments={item.comments}
                         reposts={item.reposts}
@@ -168,6 +184,7 @@ const HomeScreen = () => {
                         userId={item.userId}
                         timestamp={item.timestamp}
                         title={item.title}
+                        text={item.text}
                         imageUrl={item.imageUrl || ''}
                         comments={item.comments}
                         reposts={item.reposts}
@@ -184,6 +201,7 @@ const HomeScreen = () => {
                         userId={item.userId}
                         timestamp={item.timestamp}
                         title={item.title}
+                        text={item.text}
                         videoUrl={item.videoUrl || ''}
                         thumbnailUrl={item.thumbnailUrl}
                         comments={item.comments}
@@ -204,7 +222,7 @@ const HomeScreen = () => {
         if (!loadingMore) return null;
         return (
             <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#1DA1F2" />
+                <ActivityIndicator size="small" color="#000000" />
             </View>
         );
     };
@@ -212,23 +230,23 @@ const HomeScreen = () => {
     const handleTabSwitch = useCallback((tab: 'forYou' | 'following') => {
         if (tab === activeTab) return;
         setActiveTab(tab);
-        // Trigger reload with tab switch flag
+        // Trigger reload with tab switch flag and pass the new tab explicitly
         setTimeout(() => {
-            loadPosts(true);
+            loadPosts(true, tab);
         }, 0);
     }, [activeTab, loadPosts]);
 
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#1DA1F2" />
+                <ActivityIndicator size="large" color="#000000" />
             </View>
         );
     }
 
     return (
         <View style={styles.container}>
-            <CustomHeader title="Home" />
+            <CustomHeader title="Home" showGear={true} />
             <Animated.View 
                 style={[
                     styles.tabBar,
@@ -287,7 +305,7 @@ const HomeScreen = () => {
             />
             {switchingTab && (
                 <View style={styles.switchingOverlay}>
-                    <ActivityIndicator size="large" color="#14171A" />
+                    <ActivityIndicator size="large" color="#000000" />
                 </View>
             )}
         </View>
@@ -315,7 +333,7 @@ const styles = StyleSheet.create({
         right: 0,
         flexDirection: 'row',
         backgroundColor: '#fff',
-        borderBottomWidth: 1,
+        borderBottomWidth: 2,
         borderBottomColor: '#EFF3F4',
         zIndex: 999,
         height: 52,
@@ -341,10 +359,12 @@ const styles = StyleSheet.create({
     tabIndicator: {
         position: 'absolute',
         bottom: 0,
-        height: 4,
-        width: '100%',
-        backgroundColor: '#14171A',
-        borderRadius: 2,
+        height: 3,
+        width: '85%',
+        backgroundColor: '#000000',
+        borderRadius: 20,
+        alignSelf: 'center',
+        left: '5%',
     },
     switchingOverlay: {
         position: 'absolute',

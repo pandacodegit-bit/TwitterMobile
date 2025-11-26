@@ -64,13 +64,22 @@ const ActionButtons = ({
 
   return (
     <View style={styles.container}>
+
+        <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+        <HeartIcon color={isLiked ? '#F91880' : '#000000'} size={24} filled={isLiked} />
+        {likes > 0 && (
+          <Text style={[styles.count, isLiked && styles.likedText]}>
+            {formatCount(likes)}
+          </Text>
+        )}
+      </TouchableOpacity>
       <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress}>
-        <ChatIcon color="#536471" size={18} />
+        <ChatIcon color="#000000" size={24} />
         {comments > 0 && <Text style={styles.count}>{formatCount(comments)}</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.actionButton} onPress={handleRepost}>
-        <RepeatIcon color={isReposted ? '#00BA7C' : '#536471'} size={18} />
+        <RepeatIcon color={isReposted ? '#00BA7C' : '#000000'} size={24} />
         {reposts > 0 && (
           <Text style={[styles.count, isReposted && styles.repostedText]}>
             {formatCount(reposts)}
@@ -78,23 +87,16 @@ const ActionButtons = ({
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-        <HeartIcon color={isLiked ? '#F91880' : '#536471'} size={18} filled={isLiked} />
-        {likes > 0 && (
-          <Text style={[styles.count, isLiked && styles.likedText]}>
-            {formatCount(likes)}
-          </Text>
-        )}
+      <TouchableOpacity style={styles.actionButton}>
+        <ChartIcon color="#000000" size={24} />
+        {analytics > 0 && <Text style={styles.count}>{formatCount(analytics)}</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.actionButton} onPress={() => setShareMenuVisible(true)}>
-        <ExportIcon color="#536471" size={18} />
+        <ExportIcon color="#000000" size={24} />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton}>
-        <ChartIcon color="#536471" size={18} />
-        {analytics > 0 && <Text style={styles.count}>{formatCount(analytics)}</Text>}
-      </TouchableOpacity>
+      
 
       <Modal
         transparent
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
   },
   count: {
     fontSize: 13,
-    color: '#536471',
+    color: '#000000'//'#000000',
   },
   repostedText: {
     color: '#00BA7C',
