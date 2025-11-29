@@ -27,6 +27,7 @@ const HomeScreen = () => {
     const scrollY = useRef(new Animated.Value(0)).current;
     const lastScrollY = useRef(0);
     const isInitialMount = useRef(true);
+    const flatListRef = useRef<FlatList<Post>>(null);
 
     const loadPosts = useCallback(async (isTabSwitch: boolean = false, tab?: 'forYou' | 'following') => {
         try {
@@ -230,6 +231,8 @@ const HomeScreen = () => {
     const handleTabSwitch = useCallback((tab: 'forYou' | 'following') => {
         if (tab === activeTab) return;
         setActiveTab(tab);
+        // Scroll to top when switching tabs
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
         // Trigger reload with tab switch flag and pass the new tab explicitly
         setTimeout(() => {
             loadPosts(true, tab);
@@ -276,6 +279,7 @@ const HomeScreen = () => {
                 </TouchableOpacity>
             </Animated.View>
             <AnimatedFlatList
+                ref={flatListRef}
                 data={posts}
                 renderItem={renderPost}
                 keyExtractor={keyExtractor}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Animated, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Post } from '../types/Post';
 import { postRepository } from '../repositories/PostRepository';
@@ -214,6 +214,11 @@ const WatchScreen = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       />
+      {loading && mainData.length === 0 && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#1D9BF0" />
+        </View>
+      )}
     </View>
   );
 };
@@ -221,6 +226,16 @@ const WatchScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  loaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#fff',
   },
   listContent: {
@@ -307,7 +322,7 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 4,
     backgroundColor: '#E1E8ED',
     marginRight: 12,
   },

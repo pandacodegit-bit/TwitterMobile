@@ -12,6 +12,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BottomTabNavigator from './app/navigation/BottomTabNavigator';
 import VideoPage from './app/screens/VideoPage';
 import SettingsScreen from './app/screens/SettingsScreen';
+import ProfileScreen from './app/screens/ProfileScreen';
+import ChatScreen from './app/screens/ChatScreen';
 import { VideoProvider } from './app/context/VideoContext';
 import { SettingsProvider } from './app/context/SettingsContext';
 
@@ -47,7 +49,23 @@ function App() {
                 name="Settings" 
                 component={SettingsScreen}
                 options={{
-                  presentation: 'modal',
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen 
+                name="Profile" 
+                component={ProfileScreen}
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen 
+                name="ChatScreen" 
+                component={ChatScreen}
+                options={{
+                  presentation: 'card',
                   animation: 'slide_from_right',
                 }}
               />

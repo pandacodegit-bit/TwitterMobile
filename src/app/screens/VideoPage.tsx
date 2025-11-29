@@ -32,6 +32,7 @@ const VideoPage = () => {
   const { getVideoTime } = useVideo();
   
   const [seekTime, setSeekTime] = useState<number | null>(null);
+  const [paused, setPaused] = useState(false);
   const videoRef = useRef<any>(null);
 
   useEffect(() => {
@@ -39,6 +40,8 @@ const VideoPage = () => {
       // Get the current playback time from the previous screen
       const time = params.videoPost.currentTime || getVideoTime(params.videoPost.id);
       setSeekTime(time);
+      // Ensure video starts playing
+      setPaused(false);
     }
   }, [params?.videoPost, getVideoTime]);
 
@@ -163,7 +166,7 @@ const VideoPage = () => {
             style={styles.video}
             resizeMode="contain"
             repeat={true}
-            paused={false}
+            paused={paused}
             muted={false}
             playInBackground={false}
             playWhenInactive={false}
@@ -174,6 +177,8 @@ const VideoPage = () => {
                 videoRef.current.seek(seekTime);
                 setSeekTime(null);
               }
+              // Ensure video plays after loading
+              setPaused(false);
             }}
           />
         </View>
@@ -265,7 +270,7 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 4,
     marginRight: 12,
   },
   textInfo: {
