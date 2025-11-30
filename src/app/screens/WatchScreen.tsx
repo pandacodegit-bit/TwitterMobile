@@ -14,7 +14,7 @@ interface Section {
   data: Post[];
 }
 
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Section | Post>);
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Section>);
 
 const WatchScreen = () => {
   const insets = useSafeAreaInsets();
@@ -22,7 +22,6 @@ const WatchScreen = () => {
   const { getVideoTime } = useVideo();
   
   const [sections, setSections] = useState<Section[]>([]);
-  const [regularVideos, setRegularVideos] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -48,7 +47,6 @@ const WatchScreen = () => {
     ];
     
     setSections(sectionsToShow);
-    setRegularVideos(videoOnly);
     setLoading(false);
   }, []);
 
@@ -122,55 +120,21 @@ const WatchScreen = () => {
     </TouchableOpacity>
   );
 
-  const renderVerticalVideoItem = ({ item }: { item: Post }) => (
-    <TouchableOpacity 
-      style={styles.videoItem} 
-      onPress={() => handleVideoPress(item)}
-      activeOpacity={0.9}
-    >
-      <View style={styles.videoContainer}>
-        <Image
-          source={{ uri: item.thumbnailUrl || 'https://picsum.photos/800/450?random=' + item.id }}
-          style={styles.videoThumbnail}
-          resizeMode="contain"
-        />
-        <View style={styles.playIconOverlay}>
-          <View style={styles.playIcon}>
-            <PlayIcon color="#fff" size={32} filled={false} />
-          </View>
-        </View>
-      </View>
-      
-      <View style={styles.videoInfoRow}>
-        <Image 
-          source={{ uri: item.profileImage }} 
-          style={styles.profileImage} 
-        />
-        <View style={styles.videoInfo}>
-          {item.title && (
-            <Text style={styles.videoTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-          )}
-          <View style={styles.metaRow}>
-            <Text style={styles.userName}>{item.userName}</Text>
-            <Text style={styles.dot}>·</Text>
-            <Text style={styles.analytics}>{item.analytics} views</Text>
-            {item.timestamp && (
-              <>
-                <Text style={styles.dot}>·</Text>
-                <Text style={styles.timestamp}>{item.timestamp}</Text>
-              </>
-            )}
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
   const renderSectionRow = ({ item }: { item: Section }) => (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>{item.title}</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{item.title}</Text>
+        <TouchableOpacity 
+          style={styles.viewAllButton}
+          onPress={() => (navigation as any).navigate('SectionVideos', {
+            title: item.title,
+            videos: item.data,
+          })}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.viewAllText}>View all</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={item.data}
         renderItem={renderHorizontalVideoItem}
@@ -182,29 +146,17 @@ const WatchScreen = () => {
     </View>
   );
 
-  const renderMainItem = ({ item }: { item: Section | Post }) => {
-    if ('title' in item && 'data' in item) {
-      // It's a section
-      return renderSectionRow({ item: item as Section });
-    } else {
-      // It's a regular video
-      return renderVerticalVideoItem({ item: item as Post });
-    }
+  const renderMainItem = ({ item }: { item: Section }) => {
+    return renderSectionRow({ item });
   };
 
-  const mainData = [...sections, ...regularVideos];
-  const keyExtractor = (item: Section | Post) => {
-    if ('data' in item) {
-      return (item as Section).id;
-    }
-    return (item as Post).id;
-  };
+  const keyExtractor = (item: Section) => item.id;
 
   return (
     <View style={styles.container}>
       <CustomHeader title="Watch" />
       <AnimatedFlatList
-        data={mainData}
+        data={sections}
         renderItem={renderMainItem}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
@@ -214,7 +166,7 @@ const WatchScreen = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       />
-      {loading && mainData.length === 0 && (
+      {loading && sections.length === 0 && (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#1D9BF0" />
         </View>
@@ -244,12 +196,26 @@ const styles = StyleSheet.create({
   sectionContainer: {
     marginBottom: 5,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0F1419',
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    color: '#000',
+  },
+  viewAllButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  viewAllText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
   },
   horizontalList: {
     paddingHorizontal: 12,
@@ -282,21 +248,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#536471',
   },
-  videoItem: {
-    marginBottom: 10,
-    paddingBottom: 16,
-  },
-  videoContainer: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    backgroundColor: '#000',
-    position: 'relative',
-  },
-  videoThumbnail: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#000',
-  },
   playIconOverlay: {
     position: 'absolute',
     top: 0,
@@ -313,53 +264,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  videoInfoRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 4,
-    backgroundColor: '#E1E8ED',
-    marginRight: 12,
-  },
-  videoInfo: {
-    flex: 1,
-  },
-  videoTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F1419',
-    marginBottom: 6,
-    lineHeight: 20,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  userName: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: '#536471',
-    marginRight: 4,
-  },
-  analytics: {
-    fontSize: 13,
-    color: '#536471',
-    marginRight: 4,
-  },
-  dot: {
-    fontSize: 13,
-    color: '#536471',
-    marginHorizontal: 4,
-  },
-  timestamp: {
-    fontSize: 13,
-    color: '#536471',
   },
 });
 

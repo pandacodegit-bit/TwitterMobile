@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { FlatList, StyleSheet, View, ActivityIndicator, RefreshControl, Animated } from 'react-native';
+import { FlatList, StyleSheet, View, ActivityIndicator, RefreshControl, Animated, TouchableOpacity, Text } from 'react-native';
 import TextPostCard from '../components/TextPostCard';
 import ImagePostCard from '../components/ImagePostCard';
 import VideoPostCard from '../components/VideoPostCard';
@@ -11,6 +11,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Post>);
 
+type Category = {
+  id: string;
+  label: string;
+};
+
+const CATEGORIES: Category[] = [
+  { id: 'trending', label: 'Trending' },
+  { id: 'foryou', label: 'For You' },
+  { id: 'technology', label: 'Technology' },
+  { id: 'sports', label: 'Sports' },
+  { id: 'entertainment', label: 'Entertainment' },
+  { id: 'news', label: 'News' },
+  { id: 'gaming', label: 'Gaming' },
+  { id: 'music', label: 'Music' },
+];
+
 const DiscoverScreen = () => {
   const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -21,6 +37,7 @@ const DiscoverScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [visibleVideoIds, setVisibleVideoIds] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<string>('trending');
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
 
@@ -29,7 +46,7 @@ const DiscoverScreen = () => {
     loadPosts();
   }, []);
 
-  const loadPosts = async () => {
+  const loadPosts = async (category?: string) => {
     try {
       setLoading(true);
       // Ensure header is visible when loading
@@ -38,6 +55,8 @@ const DiscoverScreen = () => {
         duration: 150,
         useNativeDriver: true,
       }).start();
+      // In a real app, you would pass the category to the API
+      // For now, we'll use the same data but you can modify the API call
       const response = await postRepository.fetchDiscoverPosts(10);
       setPosts(response.posts);
       setHasMore(response.hasMore);
@@ -48,6 +67,12 @@ const DiscoverScreen = () => {
       setLoading(false);
       setInitialLoading(false);
     }
+  };
+
+  const handleCategoryChange = (categoryId: string) => {
+    if (categoryId === selectedCategory) return;
+    setSelectedCategory(categoryId);
+    loadPosts(categoryId);
   };
 
   const onRefresh = async () => {
@@ -196,6 +221,39 @@ const DiscoverScreen = () => {
     );
   };
 
+  const renderCategoryChip = ({ item }: { item: Category }) => (
+    <TouchableOpacity
+      style={[
+        styles.chip,
+        selectedCategory === item.id && styles.chipSelected,
+      ]}
+      onPress={() => handleCategoryChange(item.id)}
+      activeOpacity={0.7}
+    >
+      <Text
+        style={[
+          styles.chipText,
+          selectedCategory === item.id && styles.chipTextSelected,
+        ]}
+      >
+        {item.label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderListHeader = () => (
+    <View style={styles.chipsContainer}>
+      <FlatList
+        data={CATEGORIES}
+        renderItem={renderCategoryChip}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsList}
+      />
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <CustomHeader title="Discover" />
@@ -212,6 +270,7 @@ const DiscoverScreen = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: insets.top + 64 }}
+        ListHeaderComponent={renderListHeader}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -240,6 +299,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  chipsContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+  },
+  chipsList: {
+    paddingHorizontal: 12,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+    marginHorizontal: 4,
+  },
+  chipSelected: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  chipTextSelected: {
+    color: '#FFFFFF',
   },
   text: {
     fontSize: 24,

@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 48,
     height: 48,
-    borderRadius: 4,
+    borderRadius: 24,
     backgroundColor: '#E1E8ED',
   },
   userInfo: {

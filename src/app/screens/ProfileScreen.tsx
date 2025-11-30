@@ -10,6 +10,7 @@ import ImagePostCard from '../components/ImagePostCard';
 import MapPinIcon from '../components/icons/MapPinIcon';
 import CalendarIcon from '../components/icons/CalendarIcon';
 import ArrowLeftIcon from '../components/icons/ArrowLeftIcon';
+import GearIcon from '../components/icons/GearIcon';
 
 const COVER_HEIGHT = 190;
 const PROFILE_IMAGE_SIZE = 100;
@@ -55,7 +56,7 @@ const TabBar = ({ activeTab, onTabChange }: TabBarProps) => (
   </View>
 );
 
-const ProfileHeaderComponent = ({ onBackPress }: { onBackPress: () => void }) => (
+const ProfileHeaderComponent = ({ onBackPress, onSettingsPress }: { onBackPress: () => void; onSettingsPress: () => void }) => (
   <View>
     <View style={styles.coverPhotoContainer}>
       <Image
@@ -76,6 +77,13 @@ const ProfileHeaderComponent = ({ onBackPress }: { onBackPress: () => void }) =>
         source={{ uri: 'https://i.pravatar.cc/150?img=1' }}
         style={styles.profileImage}
       />
+      <TouchableOpacity 
+        style={styles.settingsButton}
+        onPress={onSettingsPress}
+        activeOpacity={0.7}
+      >
+        <GearIcon color="#000" size={28} />
+      </TouchableOpacity>
     </View>
     <View style={styles.profileInfo}>
       <Text style={styles.userName}>John Doe</Text>
@@ -218,7 +226,10 @@ const ProfileScreen = () => {
         stickyHeaderIndices={[1]}
         contentContainerStyle={{ paddingTop: insets.top }}
       >
-        <ProfileHeaderComponent onBackPress={() => navigation.goBack()} />
+        <ProfileHeaderComponent 
+          onBackPress={() => navigation.goBack()} 
+          onSettingsPress={() => (navigation as any).navigate('EditProfile')}
+        />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
         <View style={styles.postsContainer}>
           {getCurrentData().map((item) => renderPostItem(item))}
@@ -245,6 +256,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   coverPhotoContainer: {
     width: '100%',
     height: COVER_HEIGHT,
@@ -258,11 +277,15 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     marginTop: -PROFILE_IMAGE_SIZE / 2,
     paddingLeft: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingRight: 16,
   },
   profileImage: {
     width: PROFILE_IMAGE_SIZE,
     height: PROFILE_IMAGE_SIZE,
-    borderRadius: 8,
+    borderRadius: PROFILE_IMAGE_SIZE / 2,
     backgroundColor: '#E1E8ED',
     borderWidth: 4,
     borderColor: '#fff',

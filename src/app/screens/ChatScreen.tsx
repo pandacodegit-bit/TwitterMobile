@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   headerProfileImage: {
     width: 32,
     height: 32,
-    borderRadius: 4,
+    borderRadius: 16,
     backgroundColor: '#E1E8ED',
     marginRight: 8,
   },
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   messageProfileImage: {
     width: 32,
     height: 32,
-    borderRadius: 4,
+    borderRadius: 16,
     backgroundColor: '#E1E8ED',
     marginRight: 8,
   },

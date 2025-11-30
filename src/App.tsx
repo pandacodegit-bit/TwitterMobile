@@ -14,6 +14,8 @@ import VideoPage from './app/screens/VideoPage';
 import SettingsScreen from './app/screens/SettingsScreen';
 import ProfileScreen from './app/screens/ProfileScreen';
 import ChatScreen from './app/screens/ChatScreen';
+import SectionVideosScreen from './app/screens/SectionVideosScreen';
+import EditProfileScreen from './app/screens/EditProfileScreen';
 import { VideoProvider } from './app/context/VideoContext';
 import { SettingsProvider } from './app/context/SettingsContext';
 
@@ -64,6 +66,22 @@ function App() {
               <Stack.Screen 
                 name="ChatScreen" 
                 component={ChatScreen}
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen 
+                name="SectionVideos" 
+                component={SectionVideosScreen}
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen 
+                name="EditProfile" 
+                component={EditProfileScreen}
                 options={{
                   presentation: 'card',
                   animation: 'slide_from_right',

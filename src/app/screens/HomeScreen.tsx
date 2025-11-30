@@ -364,11 +364,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         height: 3,
-        width: '85%',
+        width: '45%',
         backgroundColor: '#000000',
         borderRadius: 20,
         alignSelf: 'center',
-        left: '5%',
     },
     switchingOverlay: {
         position: 'absolute',
