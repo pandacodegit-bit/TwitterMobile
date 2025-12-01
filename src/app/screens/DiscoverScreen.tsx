@@ -11,20 +11,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Post>);
 
-type Category = {
-  id: string;
-  label: string;
-};
+type TabType = 'forYou' | 'trending' | 'news' | 'sports' | 'entertainment';
 
-const CATEGORIES: Category[] = [
+const TABS: { id: TabType; label: string }[] = [
+  { id: 'forYou', label: 'For You' },
   { id: 'trending', label: 'Trending' },
-  { id: 'foryou', label: 'For You' },
-  { id: 'technology', label: 'Technology' },
+  { id: 'news', label: 'News' },
   { id: 'sports', label: 'Sports' },
   { id: 'entertainment', label: 'Entertainment' },
-  { id: 'news', label: 'News' },
-  { id: 'gaming', label: 'Gaming' },
-  { id: 'music', label: 'Music' },
 ];
 
 const DiscoverScreen = () => {
@@ -37,26 +31,39 @@ const DiscoverScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [visibleVideoIds, setVisibleVideoIds] = useState<Set<string>>(new Set());
-  const [selectedCategory, setSelectedCategory] = useState<string>('trending');
+  const [activeTab, setActiveTab] = useState<TabType>('forYou');
+  const [switchingTab, setSwitchingTab] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
+  const isInitialMount = useRef(true);
+  const flatListRef = useRef<FlatList<Post>>(null);
 
   // Initial load
   useEffect(() => {
-    loadPosts();
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      loadPosts();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadPosts = async (category?: string) => {
+  const loadPosts = useCallback(async (isTabSwitch: boolean = false, tab?: TabType) => {
     try {
-      setLoading(true);
-      // Ensure header is visible when loading
-      Animated.timing(headerTranslateY, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
-      // In a real app, you would pass the category to the API
-      // For now, we'll use the same data but you can modify the API call
+      if (isTabSwitch) {
+        setSwitchingTab(true);
+        // Ensure header is visible when switching tabs
+        Animated.timing(headerTranslateY, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        setLoading(true);
+      }
+      const currentTab = tab || activeTab;
+      console.log('Loading discover posts for tab:', currentTab);
+      // In a real app, you would pass the tab to the API
+      // For now, we'll use the same data but you can modify the API call based on tab
       const response = await postRepository.fetchDiscoverPosts(10);
       setPosts(response.posts);
       setHasMore(response.hasMore);
@@ -64,16 +71,35 @@ const DiscoverScreen = () => {
     } catch (error) {
       console.error('Error loading discover posts:', error);
     } finally {
-      setLoading(false);
+      if (isTabSwitch) {
+        setSwitchingTab(false);
+      } else {
+        setLoading(false);
+      }
       setInitialLoading(false);
     }
-  };
+  }, [activeTab]);
 
-  const handleCategoryChange = (categoryId: string) => {
-    if (categoryId === selectedCategory) return;
-    setSelectedCategory(categoryId);
-    loadPosts(categoryId);
-  };
+  // Set first video as visible when posts load
+  useEffect(() => {
+    if (posts.length > 0 && !loading) {
+      const firstVideo = posts.find(p => p.type === 'video');
+      if (firstVideo) {
+        setVisibleVideoIds(new Set([firstVideo.id]));
+      }
+    }
+  }, [posts, loading]);
+
+  const handleTabSwitch = useCallback((tab: TabType) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    // Scroll to top when switching tabs
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    // Trigger reload with tab switch flag and pass the new tab explicitly
+    setTimeout(() => {
+      loadPosts(true, tab);
+    }, 0);
+  }, [activeTab, loadPosts]);
 
   const onRefresh = async () => {
     try {
@@ -110,21 +136,18 @@ const DiscoverScreen = () => {
     {
       useNativeDriver: true,
       listener: (event: any) => {
-        // Don't hide header while loading
-        if (loading) return;
-
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
 
         if (diff > 5 && currentScrollY > 50) {
-          // Scrolling down - hide header
+          // Scrolling down - hide header and tab bar
           Animated.timing(headerTranslateY, {
-            toValue: -100,
+            toValue: -150,
             duration: 150,
             useNativeDriver: true,
           }).start();
         } else if (diff < -5) {
-          // Scrolling up - show header
+          // Scrolling up - show header and tab bar
           Animated.timing(headerTranslateY, {
             toValue: 0,
             duration: 150,
@@ -221,43 +244,42 @@ const DiscoverScreen = () => {
     );
   };
 
-  const renderCategoryChip = ({ item }: { item: Category }) => (
+  const renderTab = useCallback(({ item }: { item: typeof TABS[0] }) => (
     <TouchableOpacity
-      style={[
-        styles.chip,
-        selectedCategory === item.id && styles.chipSelected,
-      ]}
-      onPress={() => handleCategoryChange(item.id)}
+      style={[styles.tab, activeTab === item.id && styles.activeTab]}
+      onPress={() => handleTabSwitch(item.id)}
       activeOpacity={0.7}
     >
-      <Text
-        style={[
-          styles.chipText,
-          selectedCategory === item.id && styles.chipTextSelected,
-        ]}
-      >
+      <Text style={[styles.tabText, activeTab === item.id && styles.activeTabText]}>
         {item.label}
       </Text>
+      {activeTab === item.id && <View style={styles.tabIndicator} />}
     </TouchableOpacity>
-  );
-
-  const renderListHeader = () => (
-    <View style={styles.chipsContainer}>
-      <FlatList
-        data={CATEGORIES}
-        renderItem={renderCategoryChip}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsList}
-      />
-    </View>
-  );
+  ), [activeTab, handleTabSwitch]);
 
   return (
     <View style={styles.container}>
       <CustomHeader title="Discover" />
+      <Animated.View 
+        style={[
+          styles.tabBar,
+          { 
+            top: insets.top + 64,
+            transform: [{ translateY: headerTranslateY }],
+          }
+        ]}
+      >
+        <FlatList
+          data={TABS}
+          renderItem={renderTab}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabBarContent}
+        />
+      </Animated.View>
       <AnimatedFlatList
+        ref={flatListRef}
         data={posts}
         renderItem={renderPost}
         keyExtractor={keyExtractor}
@@ -269,15 +291,14 @@ const DiscoverScreen = () => {
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: insets.top + 64 }}
-        ListHeaderComponent={renderListHeader}
+        contentContainerStyle={{ paddingTop: insets.top + 64 + 52 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={Colors.primary}
             colors={[Colors.primary]}
-            progressViewOffset={insets.top + 64}
+            progressViewOffset={insets.top + 64 + 52}
           />
         }
         onEndReached={loadMorePosts}
@@ -286,6 +307,11 @@ const DiscoverScreen = () => {
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
       />
+      {switchingTab && (
+        <View style={styles.switchingOverlay}>
+          <ActivityIndicator size="large" color="#000000" />
+        </View>
+      )}
       {(loading && initialLoading) && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#000000" />
@@ -300,41 +326,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  chipsContainer: {
+  tabBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     backgroundColor: '#fff',
-    paddingVertical: 8,
+    zIndex: 999,
+    height: 52,
   },
-  chipsList: {
-    paddingHorizontal: 12,
+  tabBarContent: {
+    paddingHorizontal: 4,
+    alignItems: 'center',
   },
-  chip: {
+  tab: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#000000',
-    marginHorizontal: 4,
+    height: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
-  chipSelected: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
+  activeTab: {
+    // Active tab styling handled by indicator
   },
-  chipText: {
-    fontSize: 14,
+  tabText: {
+    fontSize: 15,
     fontWeight: '600',
-    color: '#000000',
+    color: '#536471',
   },
-  chipTextSelected: {
-    color: '#FFFFFF',
+  activeTabText: {
+    color: '#0F1419',
+    fontWeight: '700',
   },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: '40%',
+    right: '40%',
+    height: 3,
+    backgroundColor: '#000000',
+    borderRadius: 20,
   },
   footerLoader: {
     paddingVertical: 20,
     alignItems: 'center',
+  },
+  switchingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 998,
   },
   loadingOverlay: {
     position: 'absolute',
