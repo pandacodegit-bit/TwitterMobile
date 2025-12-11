@@ -1,13 +1,18 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { FlatList, StyleSheet, View, ActivityIndicator, RefreshControl, Animated, TouchableOpacity, Text } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import TextPostCard from '../components/TextPostCard';
 import ImagePostCard from '../components/ImagePostCard';
 import VideoPostCard from '../components/VideoPostCard';
+import NewsHeadlineCard from '../components/NewsHeadlineCard';
+import LinkedArticleCard from '../components/LinkedArticleCard';
+import OrganicArticleCard from '../components/OrganicArticleCard';
 import { Post } from '../types/Post';
 import { postRepository } from '../repositories/PostRepository';
 import { Colors } from '../style/colors';
 import { headerTranslateY, CustomHeader } from '../navigation/BottomTabNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LINKED_ARTICLES, NORMAL_POSTS, ORGANIC_ARTICLES } from '../data/sampleForYouPosts';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Post>);
 
@@ -22,8 +27,10 @@ const TABS: { id: TabType; label: string }[] = [
 ];
 
 const DiscoverScreen = () => {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [breakingNewsPosts, setBreakingNewsPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,9 +69,17 @@ const DiscoverScreen = () => {
       }
       const currentTab = tab || activeTab;
       console.log('Loading discover posts for tab:', currentTab);
-      // In a real app, you would pass the tab to the API
-      // For now, we'll use the same data but you can modify the API call based on tab
+      
       const response = await postRepository.fetchDiscoverPosts(10);
+      
+      // For For You tab, also load Breaking News posts for the section header
+      if (currentTab === 'forYou') {
+        const breakingNews = await postRepository.fetchTodayNewsPosts(5);
+        setBreakingNewsPosts(breakingNews.posts.slice(0, 5));
+      } else {
+        setBreakingNewsPosts([]);
+      }
+      
       setPosts(response.posts);
       setHasMore(response.hasMore);
       setNextCursor(response.nextCursor);
@@ -105,6 +120,15 @@ const DiscoverScreen = () => {
     try {
       setRefreshing(true);
       const response = await postRepository.fetchDiscoverPosts(10);
+      
+      // For For You tab, also refresh Breaking News posts
+      if (activeTab === 'forYou') {
+        const breakingNews = await postRepository.fetchTodayNewsPosts(5);
+        setBreakingNewsPosts(breakingNews.posts.slice(0, 5));
+      } else {
+        setBreakingNewsPosts([]);
+      }
+      
       setPosts(response.posts);
       setHasMore(response.hasMore);
       setNextCursor(response.nextCursor);
@@ -121,6 +145,7 @@ const DiscoverScreen = () => {
     try {
       setLoadingMore(true);
       const response = await postRepository.fetchDiscoverPosts(10, nextCursor);
+      
       setPosts(prevPosts => [...prevPosts, ...response.posts]);
       setHasMore(response.hasMore);
       setNextCursor(response.nextCursor);
@@ -175,6 +200,7 @@ const DiscoverScreen = () => {
   }).current;
 
   const renderPost = useCallback(({ item }: { item: Post }) => {
+    // Regular rendering for all tabs
     switch (item.type) {
       case 'text':
         return (
@@ -202,7 +228,8 @@ const DiscoverScreen = () => {
             timestamp={item.timestamp}
             title={item.title}
             text={item.text}
-            imageUrl={item.imageUrl || ''}
+            imageUrl={item.imageUrl}
+            imageUrls={item.imageUrls}
             comments={item.comments}
             reposts={item.reposts}
             likes={item.likes}
@@ -228,12 +255,137 @@ const DiscoverScreen = () => {
             isVisible={visibleVideoIds.has(item.id)}
           />
         );
+      case 'linked-article':
+        return (
+          <LinkedArticleCard
+            id={item.id}
+            profileImage={item.profileImage}
+            userName={item.userName}
+            userId={item.userId}
+            timestamp={item.timestamp}
+            text={item.text || ''}
+            imageUrl={item.imageUrl}
+            linkSource={item.linkSource || ''}
+            comments={item.comments}
+            reposts={item.reposts}
+            likes={item.likes}
+            analytics={item.analytics}
+          />
+        );
+      case 'organic-article':
+        return (
+          <OrganicArticleCard
+            id={item.id}
+            profileImage={item.profileImage}
+            userName={item.userName}
+            userId={item.userId}
+            timestamp={item.timestamp}
+            title={item.title || ''}
+            articleContent={item.articleContent || ''}
+            comments={item.comments}
+            reposts={item.reposts}
+            likes={item.likes}
+            analytics={item.analytics}
+          />
+        );
       default:
         return null;
     }
   }, [visibleVideoIds]);
 
   const keyExtractor = useCallback((item: Post) => item.id, []);
+
+  const renderBreakingNewsHeader = () => {
+    if (activeTab !== 'forYou' || breakingNewsPosts.length === 0) {
+      return null;
+    }
+
+    return (
+      <View>
+        {/* Breaking News Section */}
+        <View style={styles.breakingNewsSection}>
+          <View style={styles.breakingNewsHeader}>
+            <Text style={styles.breakingNewsTitle}>Breaking News</Text>
+          </View>
+          {breakingNewsPosts.map((post) => (
+            <NewsHeadlineCard
+              key={post.id}
+              id={post.id}
+              profileImage={post.profileImage}
+              timestamp={post.timestamp}
+              category={post.category || 'News'}
+              postCount={post.postCount || ''}
+              text={post.text || ''}
+              onPress={() => (navigation as any).navigate('NewsArticle', { newsPost: post })}
+            />
+          ))}
+        </View>
+
+        {/* Linked Articles Section */}
+        <View style={styles.sectionContainer}>
+          {LINKED_ARTICLES.map((post) => (
+            <LinkedArticleCard
+              key={post.id}
+              id={post.id}
+              profileImage={post.profileImage}
+              userName={post.userName}
+              userId={post.userId}
+              timestamp={post.timestamp}
+              text={post.text || ''}
+              imageUrl={post.imageUrl}
+              linkSource={post.linkSource || ''}
+              comments={post.comments}
+              reposts={post.reposts}
+              likes={post.likes}
+              analytics={post.analytics}
+            />
+          ))}
+        </View>
+
+        {/* Normal Posts Section */}
+        <View style={styles.sectionContainer}>
+          {NORMAL_POSTS.map((post) => (
+            <ImagePostCard
+              key={post.id}
+              id={post.id}
+              profileImage={post.profileImage}
+              userName={post.userName}
+              userId={post.userId}
+              timestamp={post.timestamp}
+              title={post.title}
+              text={post.text}
+              imageUrl={post.imageUrl}
+              imageUrls={post.imageUrls}
+              comments={post.comments}
+              reposts={post.reposts}
+              likes={post.likes}
+              analytics={post.analytics}
+            />
+          ))}
+        </View>
+
+        {/* Organic Articles Section */}
+        <View style={styles.sectionContainer}>
+          {ORGANIC_ARTICLES.map((post) => (
+            <OrganicArticleCard
+              key={post.id}
+              id={post.id}
+              profileImage={post.profileImage}
+              userName={post.userName}
+              userId={post.userId}
+              timestamp={post.timestamp}
+              title={post.title || ''}
+              articleContent={post.articleContent || ''}
+              comments={post.comments}
+              reposts={post.reposts}
+              likes={post.likes}
+              analytics={post.analytics}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  };
 
   const renderFooter = () => {
     if (!loadingMore) return null;
@@ -280,7 +432,7 @@ const DiscoverScreen = () => {
       </Animated.View>
       <AnimatedFlatList
         ref={flatListRef}
-        data={posts}
+        data={activeTab === 'forYou' ? [] : posts}
         renderItem={renderPost}
         keyExtractor={keyExtractor}
         removeClippedSubviews={false}
@@ -303,6 +455,7 @@ const DiscoverScreen = () => {
         }
         onEndReached={loadMorePosts}
         onEndReachedThreshold={0.5}
+        ListHeaderComponent={renderBreakingNewsHeader}
         ListFooterComponent={renderFooter}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
@@ -369,6 +522,30 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: 20,
     alignItems: 'center',
+  },
+  breakingNewsSection: {
+    backgroundColor: '#fff',
+    paddingBottom: 0,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F9F9',
+    marginBottom: 0,
+  },
+  breakingNewsHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  breakingNewsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0F1419',
+  },
+  sectionContainer: {
+    backgroundColor: '#fff',
+    paddingBottom: 0,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F9F9',
+    marginTop: 0,
   },
   switchingOverlay: {
     position: 'absolute',

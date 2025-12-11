@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
 interface CommentInputProps {
   userAvatar: string;
   placeholder?: string;
+  initialValue?: string;
   onSubmit: (text: string) => void;
 }
 
-const CommentInput: React.FC<CommentInputProps> = ({ userAvatar, placeholder = 'Post your comment', onSubmit }) => {
-  const [text, setText] = useState('');
+const CommentInput: React.FC<CommentInputProps> = ({ userAvatar, placeholder = 'Post your comment', initialValue = '', onSubmit }) => {
+  const [text, setText] = useState(initialValue);
+
+  useEffect(() => {
+    setText(initialValue);
+  }, [initialValue]);
 
   const handleSubmit = () => {
     if (text.trim()) {
       onSubmit(text.trim());
-      setText('');
+      setText(initialValue);
     }
   };
 

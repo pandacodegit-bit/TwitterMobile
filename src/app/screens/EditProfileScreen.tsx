@@ -4,7 +4,6 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ArrowLeftIcon from '../components/icons/ArrowLeftIcon';
 import CameraIcon from '../components/icons/CameraIcon';
-import ChevronRightIcon from '../components/icons/ChevronRightIcon';
 
 const COVER_HEIGHT = 190;
 const PROFILE_IMAGE_SIZE = 100;
@@ -14,6 +13,9 @@ const EditProfileScreen = () => {
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('John Doe');
   const [description, setDescription] = useState('Software engineer passionate about mobile development and design.');
+  const [location, setLocation] = useState('San Francisco, CA');
+  const [website, setWebsite] = useState('https://johndoe.com');
+  const [dateOfBirth, setDateOfBirth] = useState('January 1, 1990');
 
   const handleImagePicker = (type: 'cover' | 'profile') => {
     const options = ['Take Photo', 'Choose from Library', 'Cancel'];
@@ -74,7 +76,10 @@ const EditProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+      >
         {/* Cover Photo */}
         <View style={styles.coverPhotoContainer}>
           <Image
@@ -133,58 +138,41 @@ const EditProfileScreen = () => {
               numberOfLines={4}
             />
           </View>
-        </View>
 
-        {/* Account Settings Section */}
-        <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>Account Settings</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Location</Text>
+            <TextInput
+              style={styles.input}
+              value={location}
+              onChangeText={setLocation}
+              placeholder="Where are you from?"
+              placeholderTextColor="#536471"
+            />
+          </View>
 
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => console.log('Change Password')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.settingText}>Change Password</Text>
-            <ChevronRightIcon color="#536471" size={20} />
-          </TouchableOpacity>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Website</Text>
+            <TextInput
+              style={styles.input}
+              value={website}
+              onChangeText={setWebsite}
+              placeholder="https://yourwebsite.com"
+              placeholderTextColor="#536471"
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+          </View>
 
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => console.log('Blocked Accounts')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.settingText}>Blocked Accounts</Text>
-            <ChevronRightIcon color="#536471" size={20} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => console.log('Account Privacy')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.settingText}>Account Privacy</Text>
-            <ChevronRightIcon color="#536471" size={20} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logout Button */}
-        <View style={styles.logoutSection}>
-          <TouchableOpacity 
-            style={styles.logoutButton}
-            onPress={() => {
-              Alert.alert(
-                'Logout',
-                'Are you sure you want to logout?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Logout', style: 'destructive', onPress: () => console.log('Logout') },
-                ]
-              );
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Date of Birth</Text>
+            <TouchableOpacity 
+              style={styles.dateInput}
+              onPress={() => Alert.alert('Date Picker', 'Date picker would open here')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.dateInputText}>{dateOfBirth}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -215,15 +203,13 @@ const styles = StyleSheet.create({
     color: '#0F1419',
   },
   saveButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
     paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#000000',
   },
   saveButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
   },
   coverPhotoContainer: {
     width: '100%',
@@ -318,49 +304,20 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
   },
-  settingsSection: {
-    marginTop: 24,
-    borderTopWidth: 8,
-    borderTopColor: '#F7F9F9',
-    paddingTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F1419',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EFF3F4',
-  },
-  settingText: {
+  dateInput: {
     fontSize: 16,
     color: '#0F1419',
+    borderWidth: 1,
+    borderColor: '#EFF3F4',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
   },
-  logoutSection: {
-    borderTopWidth: 8,
-    borderTopColor: '#F7F9F9',
-    paddingTop: 16,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EFF3F4',
-  },
-  logoutButtonText: {
+  dateInputText: {
     fontSize: 16,
-    color: '#FF3B30',
+    color: '#0F1419',
   },
 });
 

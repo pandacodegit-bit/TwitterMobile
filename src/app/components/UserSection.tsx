@@ -25,9 +25,8 @@ const UserSection = ({ profileImage, userName, userId, timestamp }: UserSectionP
       <View style={styles.leftSection}>
         <Image source={{ uri: profileImage }} style={styles.profileImage} />
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>{userName}</Text>
           <View style={styles.userIdRow}>
-            <Text style={styles.userId}>@{userId}</Text>
+            <Text style={styles.userId}>{userId}</Text>
             {timestamp && (
               <>
                 <Text style={styles.dot}>·</Text>
@@ -83,7 +82,7 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 4,
     backgroundColor: '#E1E8ED',
   },
   userInfo: {
@@ -102,16 +101,16 @@ const styles = StyleSheet.create({
   },
   userId: {
     fontSize: 15,
-    color: '#536471',
+    color: '#000',
   },
   dot: {
     fontSize: 15,
-    color: '#536471',
+    color: '#000',
     marginHorizontal: 4,
   },
   timestamp: {
     fontSize: 15,
-    color: '#536471',
+    color: '#000',
   },
   menuButton: {
     padding: 4,

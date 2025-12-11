@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import ActionButtons from './ActionButtons';
 
 interface TextPostCardProps {
@@ -29,15 +30,18 @@ const TextPostCard = React.memo(({
   likes,
   analytics,
 }: TextPostCardProps) => {
+  const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
       <View style={styles.contentRow}>
-        <Image source={{ uri: profileImage }} style={styles.profileImage} />
+        <TouchableOpacity onPress={() => (navigation as any).navigate('Profile', { isOwnProfile: false })} activeOpacity={0.7}>
+          <Image source={{ uri: profileImage }} style={styles.profileImage} />
+        </TouchableOpacity>
         
         <View style={styles.contentColumn}>
           <View style={styles.headerRow}>
-            <Text style={styles.userName}>{userName}</Text>
-            <Text style={styles.userId}> @{userId}</Text>
+            <Text style={styles.userId}>{userId}</Text>
             {timestamp && (
               <>
                 <Text style={styles.dot}>· </Text>
@@ -52,17 +56,17 @@ const TextPostCard = React.memo(({
           >{title}</Text>}
           
           <Text style={styles.textBody}>{text}</Text>
-          
-          <View style={styles.actions}>
-            <ActionButtons
-              postId={id}
-              comments={comments}
-              reposts={reposts}
-              likes={likes}
-              analytics={analytics}
-            />
-          </View>
         </View>
+      </View>
+      
+      <View style={styles.actions}>
+        <ActionButtons
+          postId={id}
+          comments={comments}
+          reposts={reposts}
+          likes={likes}
+          analytics={analytics}
+        />
       </View>
     </View>
   );
@@ -71,18 +75,20 @@ const TextPostCard = React.memo(({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#EFF3F4',
   },
   contentRow: {
     flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   profileImage: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 4,
     backgroundColor: '#E1E8ED',
     marginRight: 12,
   },
@@ -96,30 +102,30 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   userName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#000000',
     marginRight: 4,
   },
   userId: {
-    fontSize: 16,
-    color: '#536471',
+    fontSize: 14,
+    color: '#000',
     fontWeight: '400',
     marginRight: 4,
   },
   dot: {
-    fontSize: 16,
-    color: '#536471',
+    fontSize: 14,
+    color: '#000',
     marginHorizontal: 4,
     fontWeight: '400',
   },
   timestamp: {
-    fontSize: 16,
-    color: '#536471',
+    fontSize: 14,
+    color: '#000',
     fontWeight: '400',
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F1419',
     marginBottom: 4,
@@ -131,7 +137,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   actions: {
-    marginTop: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
 });
 

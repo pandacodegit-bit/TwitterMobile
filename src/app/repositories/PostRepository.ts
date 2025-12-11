@@ -2,6 +2,7 @@ import { Post, PostsResponse } from '../types/Post';
 import { SAMPLE_POSTS } from '../data/samplePosts';
 import { SAMPLE_DISCOVER_POSTS } from '../data/sampleDiscoverPosts';
 import { SAMPLE_FOLLOWING_POSTS } from '../data/sampleFollowingPosts';
+import { SAMPLE_TODAY_NEWS } from '../data/sampleTodayNews';
 
 // Configuration flag to switch between mock and real API
 // Use mock data in debug/development, real API in production
@@ -37,6 +38,20 @@ class PostRepository {
     }
     
     return this.fetchDiscoverFromAPI(limit, cursor);
+  }
+
+  /**
+   * Fetch Breaking News posts (headline type)
+   * @param limit - Number of posts to fetch
+   * @param cursor - Pagination cursor (optional)
+   * @returns Promise with posts and pagination info
+   */
+  async fetchTodayNewsPosts(limit: number = 10, cursor?: string): Promise<PostsResponse> {
+    if (USE_MOCK_DATA) {
+      return this.fetchMockTodayNewsPosts(limit, cursor);
+    }
+    
+    return this.fetchTodayNewsFromAPI(limit, cursor);
   }
 
   /**
@@ -160,6 +175,22 @@ class PostRepository {
     };
   }
 
+  private async fetchMockTodayNewsPosts(limit: number, cursor?: string): Promise<PostsResponse> {
+    // Simulate network delay
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
+    
+    // Use dedicated Breaking News posts with headline type
+    const startIndex = cursor ? parseInt(cursor, 10) : 0;
+    const endIndex = startIndex + limit;
+    const posts = SAMPLE_TODAY_NEWS.slice(startIndex, endIndex);
+    
+    return {
+      posts,
+      hasMore: endIndex < SAMPLE_TODAY_NEWS.length,
+      nextCursor: endIndex < SAMPLE_TODAY_NEWS.length ? endIndex.toString() : undefined,
+    };
+  }
+
   private async fetchMockFollowingPosts(limit: number, cursor?: string): Promise<PostsResponse> {
     // Simulate network delay
     await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
@@ -252,6 +283,33 @@ class PostRepository {
       return data;
     } catch (error) {
       console.error('Error fetching discover posts from API:', error);
+      throw error;
+    }
+  }
+
+  private async fetchTodayNewsFromAPI(limit: number, cursor?: string): Promise<PostsResponse> {
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        ...(cursor && { cursor }),
+      });
+
+      const response = await fetch(`${API_BASE_URL}/today-news?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authentication headers here
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch today news posts');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching today news posts from API:', error);
       throw error;
     }
   }

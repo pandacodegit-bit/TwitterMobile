@@ -46,14 +46,12 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, level, onLike, onRep
             )}
           </TouchableOpacity>
 
-          {!isNested && (
             <TouchableOpacity style={styles.actionButton} onPress={() => onReply(comment.id)}>
               <ChatIcon color="#536471" size={16} />
               <Text style={styles.actionText}>Reply</Text>
             </TouchableOpacity>
-          )}
 
-          {!isNested && comment.replyCount > 0 && (
+          {comment.replyCount > 0 && (
             <TouchableOpacity style={styles.actionButton} onPress={() => onShowReplies(comment.id)}>
               <Text style={styles.repliesText}>
                 {comment.replyCount} {comment.replyCount === 1 ? 'reply' : 'replies'}
@@ -76,7 +74,6 @@ const styles = StyleSheet.create({
   },
   nestedContainer: {
     paddingLeft: 68,
-    backgroundColor: '#F7F9F9',
   },
   avatar: {
     width: 40,
