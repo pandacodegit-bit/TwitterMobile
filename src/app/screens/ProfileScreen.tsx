@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TouchableWithoutFeedback } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Post } from '../types/Post';
 import { postRepository } from '../repositories/PostRepository';
@@ -10,7 +10,6 @@ import ImagePostCard from '../components/ImagePostCard';
 import MapPinIcon from '../components/icons/MapPinIcon';
 import CalendarIcon from '../components/icons/CalendarIcon';
 import ArrowLeftIcon from '../components/icons/ArrowLeftIcon';
-import GearIcon from '../components/icons/GearIcon';
 
 const COVER_HEIGHT = 190;
 const PROFILE_IMAGE_SIZE = 100;
@@ -56,7 +55,7 @@ const TabBar = ({ activeTab, onTabChange }: TabBarProps) => (
   </View>
 );
 
-const ProfileHeaderComponent = ({ onBackPress, onSettingsPress }: { onBackPress: () => void; onSettingsPress: () => void }) => (
+const ProfileHeaderComponent = ({ onBackPress, onSettingsPress, isOwnProfile }: { onBackPress: () => void; onSettingsPress: () => void; isOwnProfile: boolean }) => (
   <View>
     <View style={styles.coverPhotoContainer}>
       <Image
@@ -73,21 +72,23 @@ const ProfileHeaderComponent = ({ onBackPress, onSettingsPress }: { onBackPress:
       </TouchableOpacity>
     </View>
     <View style={styles.profileImageContainer}>
-      <Image
-        source={{ uri: 'https://i.pravatar.cc/150?img=1' }}
-        style={styles.profileImage}
-      />
-      <TouchableOpacity 
-        style={styles.settingsButton}
-        onPress={onSettingsPress}
-        activeOpacity={0.7}
-      >
-        <GearIcon color="#000" size={28} />
-      </TouchableOpacity>
+      <View style={styles.profileImageBorder}>
+        <Image
+          source={{ uri: 'https://i.pravatar.cc/150?img=1' }}
+          style={styles.profileImage}
+        />
+      </View>
+      {isOwnProfile && (
+        <TouchableWithoutFeedback onPress={onSettingsPress}>
+          <View style={styles.editButton}>
+            <Text style={styles.editText}>Edit profile</Text>
+          </View>
+        </TouchableWithoutFeedback>
+      )}
     </View>
     <View style={styles.profileInfo}>
       <Text style={styles.userName}>John Doe</Text>
-      <Text style={styles.userId}>@johndoe</Text>
+      <Text style={styles.userId}>johndoe</Text>
       <Text style={styles.description}>
         Software engineer passionate about mobile development and design.
       </Text>
@@ -118,7 +119,11 @@ const ProfileHeaderComponent = ({ onBackPress, onSettingsPress }: { onBackPress:
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
+  const params = route.params as { isOwnProfile?: boolean } | undefined;
+  const isOwnProfile = params?.isOwnProfile !== false; // Default to true if not specified
+  
   const [activeTab, setActiveTab] = useState<'posts' | 'videos' | 'playlists'>('posts');
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [videos, setVideos] = useState<Post[]>([]);
@@ -176,6 +181,7 @@ const ProfileScreen = () => {
           title={item.title}
           text={item.text}
           imageUrl={item.imageUrl}
+          imageUrls={item.imageUrls}
           comments={item.comments}
           reposts={item.reposts}
           likes={item.likes}
@@ -229,6 +235,7 @@ const ProfileScreen = () => {
         <ProfileHeaderComponent 
           onBackPress={() => navigation.goBack()} 
           onSettingsPress={() => (navigation as any).navigate('EditProfile')}
+          isOwnProfile={isOwnProfile}
         />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
         <View style={styles.postsContainer}>
@@ -256,13 +263,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  settingsButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+  editButton: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#536471',
+    borderRadius: 20,
+  },
+  editText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
   },
   coverPhotoContainer: {
     width: '100%',
@@ -282,13 +296,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingRight: 16,
   },
+  profileImageBorder: {
+    padding: 4,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+  },
   profileImage: {
     width: PROFILE_IMAGE_SIZE,
     height: PROFILE_IMAGE_SIZE,
-    borderRadius: PROFILE_IMAGE_SIZE / 2,
+    borderRadius: 4,
     backgroundColor: '#E1E8ED',
-    borderWidth: 4,
-    borderColor: '#fff',
   },
   profileInfo: {
     paddingHorizontal: 16,
@@ -302,7 +319,7 @@ const styles = StyleSheet.create({
   },
   userId: {
     fontSize: 15,
-    color: '#536471',
+    color: '#000',
     marginBottom: 12,
   },
   description: {

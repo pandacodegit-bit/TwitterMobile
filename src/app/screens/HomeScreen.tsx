@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { FlatList, StyleSheet, View, ActivityIndicator, RefreshControl, Animated, TouchableOpacity, Text } from 'react-native';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import TextPostCard from '../components/TextPostCard';
 import ImagePostCard from '../components/ImagePostCard';
 import VideoPostCard from '../components/VideoPostCard';
@@ -13,6 +14,7 @@ import { useSettings } from '../context/SettingsContext';
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Post>);
 
 const HomeScreen = () => {
+    const navigation = useNavigation();
     const insets = useSafeAreaInsets();
     const { defaultTab } = useSettings();
     const [posts, setPosts] = useState<Post[]>([]);
@@ -186,7 +188,8 @@ const HomeScreen = () => {
                         timestamp={item.timestamp}
                         title={item.title}
                         text={item.text}
-                        imageUrl={item.imageUrl || ''}
+                        imageUrl={item.imageUrl}
+                        imageUrls={item.imageUrls}
                         comments={item.comments}
                         reposts={item.reposts}
                         likes={item.likes}
@@ -249,7 +252,12 @@ const HomeScreen = () => {
 
     return (
         <View style={styles.container}>
-            <CustomHeader title="Home" showGear={true} />
+            <CustomHeader 
+                title="Home" 
+                showGear={true} 
+                showProfileIcon={true} 
+                onProfilePress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            />
             <Animated.View 
                 style={[
                     styles.tabBar,

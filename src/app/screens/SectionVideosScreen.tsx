@@ -38,40 +38,46 @@ const SectionVideosScreen = () => {
       onPress={() => handleVideoPress(item)}
       activeOpacity={0.9}
     >
-      <View style={styles.videoContainer}>
-        <Image
-          source={{ uri: item.thumbnailUrl || 'https://picsum.photos/800/450?random=' + item.id }}
-          style={styles.videoThumbnail}
-          resizeMode="cover"
-        />
-        <View style={styles.playIconOverlay}>
-          <View style={styles.playIcon}>
-            <PlayIcon color="#fff" size={32} filled={false} />
-          </View>
-        </View>
-      </View>
-      
-      <View style={styles.videoInfoRow}>
-        <Image 
-          source={{ uri: item.profileImage }} 
-          style={styles.profileImage} 
-        />
-        <View style={styles.videoInfo}>
+      {/* Header with profile and meta info */}
+      <View style={styles.contentRow}>
+        <TouchableOpacity onPress={() => (navigation as any).navigate('Profile', { isOwnProfile: false })} activeOpacity={0.7}>
+          <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
+        </TouchableOpacity>
+        
+        <View style={styles.contentColumn}>
           {item.title && (
-            <Text style={styles.videoTitle} numberOfLines={2}>
+            <Text numberOfLines={1} style={styles.videoTitle}>
               {item.title}
             </Text>
           )}
-          <View style={styles.metaRow}>
-            <Text style={styles.userName}>{item.userName}</Text>
-            <Text style={styles.dot}>·</Text>
-            <Text style={styles.analytics}>{item.analytics} views</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.userId}>{item.userId}</Text>
             {item.timestamp && (
               <>
-                <Text style={styles.dot}>·</Text>
+                <Text style={styles.dot}> · </Text>
                 <Text style={styles.timestamp}>{item.timestamp}</Text>
               </>
             )}
+          </View>
+        </View>
+      </View>
+
+      {/* Video thumbnail with padding */}
+      <View style={styles.videoWrapper}>
+        <View style={styles.videoContainer}>
+          <Image
+            source={{ uri: item.thumbnailUrl || 'https://picsum.photos/800/450?random=' + item.id }}
+            style={styles.videoThumbnail}
+            resizeMode="cover"
+          />
+          <View style={styles.playIconOverlay}>
+            <View style={styles.playIcon}>
+              <PlayIcon color="#fff" size={32} filled={false} />
+            </View>
+          </View>
+          {/* Runtime Badge */}
+          <View style={styles.runtimeBadge}>
+            <Text style={styles.runtimeText}>12:34</Text>
           </View>
         </View>
       </View>
@@ -129,14 +135,68 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   videoItem: {
-    marginBottom: 10,
-    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFF3F4',
+    paddingTop: 12,
+    paddingBottom: 0,
+  },
+  contentRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 4,
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 4,
+    backgroundColor: '#E1E8ED',
+    marginRight: 12,
+  },
+  contentColumn: {
+    flex: 1,
+  },
+  videoTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0F1419',
+    marginBottom: 2,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+    flexWrap: 'wrap',
+  },
+  userId: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '400',
+    marginRight: 4,
+  },
+  dot: {
+    fontSize: 14,
+    color: '#000',
+    marginHorizontal: 4,
+    fontWeight: '400',
+  },
+  timestamp: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '400',
+  },
+  videoWrapper: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   videoContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
     backgroundColor: '#000',
     position: 'relative',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   videoThumbnail: {
     width: '100%',
@@ -160,52 +220,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  videoInfoRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 12,
+  runtimeBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E1E8ED',
-    marginRight: 12,
-  },
-  videoInfo: {
-    flex: 1,
-  },
-  videoTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F1419',
-    marginBottom: 6,
-    lineHeight: 20,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  userName: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: '#536471',
-    marginRight: 4,
-  },
-  analytics: {
-    fontSize: 13,
-    color: '#536471',
-    marginRight: 4,
-  },
-  dot: {
-    fontSize: 13,
-    color: '#536471',
-    marginHorizontal: 4,
-  },
-  timestamp: {
-    fontSize: 13,
-    color: '#536471',
+  runtimeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

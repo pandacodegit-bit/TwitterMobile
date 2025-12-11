@@ -22,6 +22,7 @@ const CommentsList: React.FC<CommentsListProps> = ({
   const [loading, setLoading] = useState(true);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyUsername, setReplyUsername] = useState<string>('');
 
   useEffect(() => {
     if (visible) {
@@ -53,10 +54,21 @@ const CommentsList: React.FC<CommentsListProps> = ({
 
   const handleAddReply = async (commentId: string, text: string) => {
     try {
-      const newReply = await commentRepository.addReply(postId, commentId, text);
+      // Find the parent comment (either the comment itself or its parent if it's a reply)
+      let parentCommentId = commentId;
+      
+      for (const comment of comments) {
+        // Check if commentId is a nested reply
+        if (comment.replies.some(r => r.id === commentId)) {
+          parentCommentId = comment.id;
+          break;
+        }
+      }
+      
+      const newReply = await commentRepository.addReply(postId, parentCommentId, text);
       
       setComments(comments.map(comment => {
-        if (comment.id === commentId) {
+        if (comment.id === parentCommentId) {
           return {
             ...comment,
             replies: [...comment.replies, newReply],
@@ -66,7 +78,8 @@ const CommentsList: React.FC<CommentsListProps> = ({
         return comment;
       }));
       setReplyingTo(null);
-      setExpandedComments(new Set([...expandedComments, commentId]));
+      setReplyUsername('');
+      setExpandedComments(new Set([...expandedComments, parentCommentId]));
     } catch (error) {
       console.error('Error adding reply:', error);
     }
@@ -112,7 +125,24 @@ const CommentsList: React.FC<CommentsListProps> = ({
   };
 
   const handleReply = (commentId: string) => {
+    // Find the comment or reply being replied to
+    let username = '';
+    for (const comment of comments) {
+      if (comment.id === commentId) {
+        username = comment.username;
+        break;
+      }
+      // Check in replies
+      for (const reply of comment.replies) {
+        if (reply.id === commentId) {
+          username = reply.username;
+          break;
+        }
+      }
+      if (username) break;
+    }
     setReplyingTo(commentId);
+    setReplyUsername(username);
   };
 
   const handleShowReplies = (commentId: string) => {
@@ -143,22 +173,37 @@ const CommentsList: React.FC<CommentsListProps> = ({
           <View style={styles.replyInputContainer}>
             <CommentInput
               userAvatar={currentUserAvatar}
-              placeholder="Post your reply"
+              placeholder={`Reply to ${replyUsername}`}
+              initialValue={`${replyUsername} `}
               onSubmit={(text) => handleAddReply(item.id, text)}
             />
           </View>
         )}
 
-        {isExpanded && item.replies.map((reply) => (
-          <CommentItem
-            key={reply.id}
-            comment={reply}
-            level={1}
-            onLike={handleLike}
-            onReply={handleReply}
-            onShowReplies={handleShowReplies}
-          />
-        ))}
+        {isExpanded && item.replies.map((reply) => {
+          const isReplyingToNested = replyingTo === reply.id;
+          return (
+            <View key={reply.id}>
+              <CommentItem
+                comment={reply}
+                level={1}
+                onLike={handleLike}
+                onReply={handleReply}
+                onShowReplies={handleShowReplies}
+              />
+              {isReplyingToNested && (
+                <View style={styles.replyInputContainer}>
+                  <CommentInput
+                    userAvatar={currentUserAvatar}
+                    placeholder={`Reply to ${replyUsername}`}
+                    initialValue={`${replyUsername} `}
+                    onSubmit={(text) => handleAddReply(reply.id, text)}
+                  />
+                </View>
+              )}
+            </View>
+          );
+        })}
       </View>
     );
   };

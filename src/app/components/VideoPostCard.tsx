@@ -88,13 +88,18 @@ const VideoPostCard = React.memo(({
   return (
     <View style={styles.container}>
       <View style={styles.contentRow}>
-        <Image source={{ uri: profileImage }} style={styles.profileImage} />
+        <TouchableOpacity onPress={() => (navigation as any).navigate('Profile', { isOwnProfile: false })} activeOpacity={0.7}>
+          <Image source={{ uri: profileImage }} style={styles.profileImage} />
+        </TouchableOpacity>
         
         <View style={styles.contentColumn}>
 
+{title && <Text 
+          numberOfLines={1}
+          style={styles.title}
+          >{title}</Text>}
             <View style={styles.headerRow}>
-            <Text style={styles.userName}>{userName}</Text>
-            <Text style={styles.userId}> @{userId}</Text>
+            <Text style={styles.userId}>{userId}</Text>
             {timestamp && (
               <>
                 <Text style={styles.dot}>· </Text>
@@ -103,60 +108,51 @@ const VideoPostCard = React.memo(({
             )}
           </View>
 
-          {title && <Text 
+          {/* {title && <Text 
           numberOfLines={1}
           style={styles.title}
-          >{title}</Text>}
-          
-          {/* <View style={styles.headerRow}>
-            <Text style={styles.userName}>{userName}</Text>
-            <Text style={styles.userId}>@{userId}</Text>
-            {timestamp && (
-              <>
-                <Text style={styles.dot}>·</Text>
-                <Text style={styles.timestamp}>{timestamp}</Text>
-              </>
-            )}
-          </View> */}
-          
-          {/* {text && <Text style={styles.description}>{text}</Text>} */}
-          
-          <View style={styles.videoContainer}>
-            <Video
-              ref={videoRef}
-              source={{ uri: videoUrl }}
-              style={styles.video}
-              resizeMode="cover"
-              repeat={true}
-              paused={!isVisible}
-              muted={true}
-              playInBackground={false}
-              playWhenInactive={false}
-              controls={false}
-              ignoreSilentSwitch="ignore"
-              onLoad={onLoad}
-              onError={onError}
-              onBuffer={onBuffer}
-              onProgress={onProgress}
-              progressUpdateInterval={250}
-            />
-            <TouchableOpacity 
-              activeOpacity={1.0}
-              onPress={handleVideoPress}
-              style={styles.videoOverlay}
-            />
-          </View>
-          
-          <View style={styles.actions}>
-            <ActionButtons
-              postId={id}
-              comments={comments}
-              reposts={reposts}
-              likes={likes}
-              analytics={analytics}
-            />
-          </View>
+          >{title}</Text>} */}
         </View>
+      </View>
+
+      {/* Full width video */}
+      <View style={styles.videoWrapper}>
+        <View style={styles.videoContainer}>
+          <Video
+            ref={videoRef}
+            source={{ uri: videoUrl }}
+            style={styles.video}
+            resizeMode="cover"
+            repeat={true}
+            paused={!isVisible}
+            muted={true}
+            playInBackground={false}
+            playWhenInactive={false}
+            controls={false}
+            ignoreSilentSwitch="ignore"
+            onLoad={onLoad}
+            onError={onError}
+            onBuffer={onBuffer}
+            onProgress={onProgress}
+            progressUpdateInterval={250}
+          />
+          <TouchableOpacity 
+            activeOpacity={1.0}
+            onPress={handleVideoPress}
+            style={styles.videoOverlay}
+          />
+        </View>
+      </View>
+      
+      {/* Full width actions */}
+      <View style={styles.actions}>
+        <ActionButtons
+          postId={id}
+          comments={comments}
+          reposts={reposts}
+          likes={likes}
+          analytics={analytics}
+        />
       </View>
     </View>
   );
@@ -167,16 +163,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#EFF3F4',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 0,
   },
   contentRow: {
     flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 4,
+    alignItems: 'center',
   },
   profileImage: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 4,
     backgroundColor: '#E1E8ED',
     marginRight: 12,
   },
@@ -184,7 +183,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F1419',
     marginBottom: 4,
@@ -192,31 +191,29 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
     flexWrap: 'wrap',
+    gap: 4,
   },
   userName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#000000',
-    marginRight: 4,
     
   },
   userId: {
-    fontSize: 16,
-    color: '#536471',
+    fontSize: 14,
+    color: '#000',
     fontWeight: '400',
-    marginRight: 4,
   },
   dot: {
-    fontSize: 16,
-    color: '#536471',
-    marginHorizontal: 4,
+    fontSize: 14,
+    color: '#000',
     fontWeight: '400',
   },
   timestamp: {
-    fontSize: 16,
-    color: '#536471',
+    fontSize: 14,
+    color: '#000',
     fontWeight: '400',
   },
   description: {
@@ -226,6 +223,11 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     marginBottom: 12,
   },
+  videoWrapper: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    marginTop: 12
+  },
   videoContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
@@ -233,7 +235,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 0,
   },
   video: {
     width: '100%',
@@ -248,7 +249,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   actions: {
-    marginTop: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
 });
 

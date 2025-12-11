@@ -68,7 +68,7 @@ const ActionButtons = ({
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
         <HeartIcon color={isLiked ? '#F91880' : '#000000'} size={24} filled={isLiked} />
         {likes > 0 && (
-          <Text style={[styles.count, isLiked && styles.likedText]}>
+          <Text style={styles.count}>
             {formatCount(likes)}
           </Text>
         )}
@@ -81,7 +81,7 @@ const ActionButtons = ({
       <TouchableOpacity style={styles.actionButton} onPress={handleRepost}>
         <RepeatIcon color={isReposted ? '#00BA7C' : '#000000'} size={24} />
         {reposts > 0 && (
-          <Text style={[styles.count, isReposted && styles.repostedText]}>
+          <Text style={styles.count}>
             {formatCount(reposts)}
           </Text>
         )}
@@ -146,8 +146,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
   },
   actionButton: {
     flexDirection: 'row',

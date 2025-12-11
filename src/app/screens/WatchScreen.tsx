@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Animated, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Post } from '../types/Post';
 import { postRepository } from '../repositories/PostRepository';
@@ -8,20 +8,20 @@ import { headerTranslateY, CustomHeader } from '../navigation/BottomTabNavigator
 import PlayIcon from '../components/icons/PlayIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface Section {
-  id: string;
-  title: string;
-  data: Post[];
-}
-
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Section>);
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 const WatchScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { getVideoTime } = useVideo();
   
-  const [sections, setSections] = useState<Section[]>([]);
+  const [followingVideos, setFollowingVideos] = useState<Post[]>([]);
+  const [trendingVideos, setTrendingVideos] = useState<Post[]>([]);
+  const [continueWatchingVideos, setContinueWatchingVideos] = useState<Post[]>([]);
+  const [historyVideos, setHistoryVideos] = useState<Post[]>([]);
+  const [liveVideos, setLiveVideos] = useState<Post[]>([]);
+  const [channelVideos, setChannelVideos] = useState<Post[]>([]);
+  const [playlistVideos, setPlaylistVideos] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -37,16 +37,13 @@ const WatchScreen = () => {
     const response = await postRepository.fetchPosts(20);
     const videoOnly = response.posts.filter(post => post.type === 'video');
     
-    // Reuse same videos for all sections and regular videos
-    const sectionsToShow = [
-      { id: 'trending', title: 'Trending', data: videoOnly },
-      { id: 'continue', title: 'Continue Watching', data: videoOnly },
-      { id: 'following', title: 'Following', data: videoOnly },
-      { id: 'history', title: 'History', data: videoOnly },
-      { id: 'playlist', title: 'Playlist', data: videoOnly },
-    ];
-    
-    setSections(sectionsToShow);
+    setFollowingVideos(videoOnly);
+    setTrendingVideos(videoOnly);
+    setContinueWatchingVideos(videoOnly);
+    setHistoryVideos(videoOnly);
+    setLiveVideos(videoOnly);
+    setChannelVideos(videoOnly);
+    setPlaylistVideos(videoOnly);
     setLoading(false);
   }, []);
 
@@ -93,42 +90,114 @@ const WatchScreen = () => {
     }
   );
 
-  const renderHorizontalVideoItem = ({ item }: { item: Post }) => (
-    <TouchableOpacity 
-      style={styles.horizontalVideoItem} 
-      onPress={() => handleVideoPress(item)}
-      activeOpacity={0.9}
-    >
-      <View style={styles.horizontalVideoContainer}>
-        <Image
-          source={{ uri: item.thumbnailUrl || 'https://picsum.photos/800/450?random=' + item.id }}
-          style={styles.horizontalThumbnail}
-          resizeMode="cover"
-        />
-        <View style={styles.playIconOverlay}>
-          <View style={styles.playIcon}>
-            <PlayIcon color="#fff" size={24} filled={false} />
+  // Renderer for horizontal video items; section determines extra overlays
+  const renderHorizontalVideoItem = (item: Post, section: string) => {
+    // compute progress for continue watching if available
+    const currentTime = (item as any).currentTime as number | undefined;
+    const duration = (item as any).duration as number | undefined;
+    let progressPercent: number | null = null;
+    if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
+      progressPercent = Math.max(0, Math.min(1, currentTime / duration));
+    }
+
+    return (
+      <TouchableOpacity 
+        style={styles.horizontalVideoItem} 
+        onPress={() => handleVideoPress(item)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.horizontalVideoContainer}>
+          <Image
+            source={{ uri: item.thumbnailUrl || 'https://picsum.photos/800/450?random=' + item.id }}
+            style={styles.horizontalThumbnail}
+            resizeMode="cover"
+          />
+          <View style={styles.playIconOverlay}>
+            <View style={styles.playIcon}>
+              <PlayIcon color="#fff" size={24} filled={false} />
+            </View>
+          </View>
+
+          {/* Runtime Badge */}
+          <View style={styles.runtimeBadge}>
+            <Text style={styles.runtimeText}>12:34</Text>
+          </View>
+
+          {/* Section-specific overlays */}
+          {section === 'Continue Watching' && (
+            <View style={styles.seekBarContainer} pointerEvents="none">
+              <View style={styles.seekBarBackground} />
+              <View
+                style={[
+                  styles.seekBarProgress,
+                  // if no progress available, show a default 40%
+                  { width: progressPercent !== null ? `${Math.round(progressPercent * 100)}%` : '40%' },
+                ]}
+              />
+            </View>
+          )}
+
+          {section === 'Live' && (
+            <View style={styles.liveBadge}>
+              <Text style={styles.liveBadgeText}>LIVE</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.horizontalVideoTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={styles.horizontalVideoMeta} numberOfLines={1}>
+          {item.userName} · {item.analytics} views
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderPlaylistItem = (item: Post) => {
+    return (
+      <TouchableOpacity 
+        style={styles.horizontalVideoItem} 
+        onPress={() => (navigation as any).navigate('SectionVideos', {
+          title: item.title || 'Playlist',
+          videos: playlistVideos,
+        })}
+        activeOpacity={0.9}
+      >
+        <View style={styles.horizontalVideoContainer}>
+          <Image
+            source={{ uri: item.thumbnailUrl || 'https://picsum.photos/800/450?random=' + item.id }}
+            style={styles.horizontalThumbnail}
+            resizeMode="cover"
+          />
+          <View style={styles.playIconOverlay}>
+            <View style={styles.playIcon}>
+              <PlayIcon color="#fff" size={24} filled={false} />
+            </View>
+          </View>
+          {/* Runtime Badge */}
+          <View style={styles.runtimeBadge}>
+            <Text style={styles.runtimeText}>12:34</Text>
           </View>
         </View>
-      </View>
-      <Text style={styles.horizontalVideoTitle} numberOfLines={2}>
-        {item.title}
-      </Text>
-      <Text style={styles.horizontalVideoMeta} numberOfLines={1}>
-        {item.userName} · {item.analytics} views
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text style={styles.horizontalVideoTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={styles.horizontalVideoMeta} numberOfLines={1}>
+          {item.userName} · {item.analytics} views
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
-  const renderSectionRow = ({ item }: { item: Section }) => (
+  const renderSection = (title: string, videos: Post[]) => (
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{item.title}</Text>
+        <Text style={styles.sectionTitle}>{title}</Text>
         <TouchableOpacity 
           style={styles.viewAllButton}
           onPress={() => (navigation as any).navigate('SectionVideos', {
-            title: item.title,
-            videos: item.data,
+            title: title,
+            videos: videos,
           })}
           activeOpacity={0.7}
         >
@@ -136,8 +205,8 @@ const WatchScreen = () => {
         </TouchableOpacity>
       </View>
       <FlatList
-        data={item.data}
-        renderItem={renderHorizontalVideoItem}
+        data={videos}
+        renderItem={({ item }) => renderHorizontalVideoItem(item, title)}
         keyExtractor={(video) => video.id}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -146,27 +215,63 @@ const WatchScreen = () => {
     </View>
   );
 
-  const renderMainItem = ({ item }: { item: Section }) => {
-    return renderSectionRow({ item });
-  };
-
-  const keyExtractor = (item: Section) => item.id;
+  const renderPlaylistSection = (title: string, videos: Post[]) => (
+    <View style={styles.sectionContainer}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <TouchableOpacity 
+          style={styles.viewAllButton}
+          onPress={() => (navigation as any).navigate('Playlists', {
+            title: title,
+            playlists: videos,
+          })}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.viewAllText}>View all</Text>
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={videos}
+        renderItem={({ item }) => renderPlaylistItem(item)}
+        keyExtractor={(video) => video.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontalList}
+      />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <CustomHeader title="Watch" />
-      <AnimatedFlatList
-        data={sections}
-        renderItem={renderMainItem}
-        keyExtractor={keyExtractor}
+      <AnimatedScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.listContent, { paddingTop: insets.top + 64 + 16 }]}
-        refreshing={loading}
-        onRefresh={loadVideos}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 64 + 16 }]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-      />
-      {loading && sections.length === 0 && (
+      >
+        {/* Following Section */}
+        {renderSection('Following', followingVideos)}
+        
+        {/* Trending Section */}
+        {renderSection('Trending', trendingVideos)}
+        
+        {/* Continue Watching Section */}
+        {renderSection('Continue Watching', continueWatchingVideos)}
+        
+        {/* History Section */}
+        {renderSection('History', historyVideos)}
+        
+        {/* Live Section */}
+        {renderSection('Live', liveVideos)}
+        
+        {/* Channel Section */}
+        {renderSection('Channel', channelVideos)}
+        
+        {/* Playlist Section */}
+        {renderPlaylistSection('Playlist', playlistVideos)}
+      </AnimatedScrollView>
+      {loading && followingVideos.length === 0 && (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#1D9BF0" />
         </View>
@@ -190,7 +295,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  listContent: {
+  scrollContent: {
     paddingBottom: 16,
   },
   sectionContainer: {
@@ -264,6 +369,62 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  runtimeBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  runtimeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // Continue Watching seek bar
+  seekBarContainer: {
+    position: 'absolute',
+    left: 8,
+    right: 8,
+    bottom: 6,
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    zIndex: 5,
+  },
+  seekBarBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  seekBarProgress: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#1D9BF0',
+  },
+  // Live badge
+  liveBadge: {
+    position: 'absolute',
+    left: 8,
+    bottom: 8,
+    backgroundColor: '#F32222',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    zIndex: 6,
+  },
+  liveBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
 

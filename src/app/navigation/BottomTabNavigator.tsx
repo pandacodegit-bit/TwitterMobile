@@ -1,11 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet, Animated, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Import screens
-import HomeScreen from '../screens/HomeScreen';
+import HomeDrawerNavigator from './HomeDrawerNavigator';
 import DiscoverScreen from '../screens/DiscoverScreen';
 import WatchScreen from '../screens/WatchScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -20,6 +20,7 @@ import BellIcon from '../components/icons/BellIcon';
 import ProfileIcon from '../components/icons/ProfileIcon';
 import MessageIcon from '../components/icons/MessageIcon';
 import GearIcon from '../components/icons/GearIcon';
+import { useMinimizedPlayer } from '../context/MinimizedPlayerContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -27,7 +28,17 @@ const Tab = createBottomTabNavigator();
 const headerTranslateY = new Animated.Value(0);
 
 // Custom Header Component
-const CustomHeader = ({ title, showGear = false }: { title: string; showGear?: boolean }) => {
+const CustomHeader = ({ 
+  title, 
+  showGear = false, 
+  showProfileIcon = false,
+  onProfilePress 
+}: { 
+  title: string; 
+  showGear?: boolean; 
+  showProfileIcon?: boolean;
+  onProfilePress?: () => void;
+}) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   
@@ -41,12 +52,21 @@ const CustomHeader = ({ title, showGear = false }: { title: string; showGear?: b
         }
       ]}
     >
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Profile' as never)}
-        style={styles.headerButton}
-      >
-        <ProfileIcon color="#000" size={24} />
-      </TouchableOpacity>
+      {showProfileIcon ? (
+        <TouchableOpacity
+          onPress={onProfilePress || (() => navigation.navigate('Profile' as never))}
+          style={styles.headerButton}
+        >
+          <ProfileIcon color="#000" size={24} />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.headerButton}
+          disabled
+        >
+          {/* Empty space to maintain layout balance */}
+        </TouchableOpacity>
+      )}
       <Text style={styles.headerTitle}>{title}</Text>
       {showGear ? (
         <TouchableOpacity
@@ -92,7 +112,11 @@ const getTabBarIcon = ({ color, size, routeName, focused }: {
 };
 
 const BottomTabNavigator = () => {
+  const insets = useSafeAreaInsets();
+  const { isMinimized } = useMinimizedPlayer();
+  
   return (
+  <View style={styles.container}>
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size, focused }) => 
@@ -105,8 +129,8 @@ const BottomTabNavigator = () => {
           backgroundColor: '#fff',
           borderTopWidth: 2,
           borderTopColor: '#e1e8ed',
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + (isMinimized ? 0 : insets.bottom),
+          paddingBottom: isMinimized ? 0 : insets.bottom,
           paddingTop: 8,
           paddingEnd: 4,
           paddingStart: 4
@@ -125,7 +149,7 @@ const BottomTabNavigator = () => {
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen}
+        component={HomeDrawerNavigator}
       />
       <Tab.Screen 
         name="Discover" 
@@ -144,10 +168,14 @@ const BottomTabNavigator = () => {
         component={MessagesScreen}
       />
     </Tab.Navigator>
+  </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   header: {
     position: 'absolute',
     top: 0,
